@@ -52,7 +52,7 @@ map.use_min = True
 map.min = [0]
 map.use_max = True
 map.max = [255]
-links.new(rl.outputs['Z'], map.inputs[0])
+#links.new(rl.outputs['Z'], map.inputs[0]) MacOS has error
 
 invert = tree.nodes.new(type="CompositorNodeInvert")
 links.new(map.outputs[0], invert.inputs[1])
@@ -176,7 +176,7 @@ for output_node in [depthFileOutput, normalFileOutput, albedoFileOutput]:
 for i in range(0, args.views):
     print("Rotation {}, {}".format((stepsize * i), radians(stepsize * i)))
 
-    scene.render.filepath = fp + '_r_{0:03d}'.format(int(i * stepsize))
+    scene.render.filepath = fp + '_{}'.format(int(i))
     #depthFileOutput.file_slots[0].path = scene.render.filepath + "_depth.png"
     #normalFileOutput.file_slots[0].path = scene.render.filepath + "_normal.png"
     #albedoFileOutput.file_slots[0].path = scene.render.filepath + "_albedo.png"
