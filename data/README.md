@@ -19,6 +19,6 @@ Documentation for data processing
 * Check the generated 2D images
 * (optional) If images not OK, either go back to saved blender file and re-scale/rotate/translate, or modify line #156 in `render_blender.py`: `cam.location = Vector((10, 10, -0.8))`to change the camera location.
 
- **File Naming: **
+ **File Naming:**
 
  e.g. for Charmander, generate folder named 004, including 004/004.obj and 004/004_0~29.png
