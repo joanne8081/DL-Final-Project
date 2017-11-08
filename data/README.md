@@ -9,12 +9,12 @@ Documentation for data processing
 * Import the `.FBX` object file to Blender
 * Scale the pokemon object appropriately
 * Rotate the pokemon object to standing upright pose
-* Translate the pokemon object to roughly centered at origin
+* Translate the pokemon object downward to roughly centered at origin
 * Export to a `.obj` file
 * (optional) Save to a blender file `.blend`
-* Take multi-view snapshots with the following command
+* Take multi-view snapshots with the following command at the folder with render_blender.py
   ```
-    blender --background --python render_blender.py -- --output_folder /tmp path_to_model.obj
+    blender --background --python render_blender.py -- --output_folder path_to_output_folder path_to_model.obj
   ```
 * Check the generated 2D images
 * (optional) If images not OK, either go back to saved blender file and re-scale/rotate/translate, or modify line #156 in `render_blender.py`: `cam.location = Vector((10, 10, -0.8))`to change the camera location.
