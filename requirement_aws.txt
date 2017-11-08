@@ -1,0 +1,21 @@
+git clone https://github.com/fanhqme/PointSetGeneration.git
+cd PointSetGeneration/demo
+wget https://www.dropbox.com/s/5v47923zrr84sti/twobranch_v1.pkl
+wget https://www.dropbox.com/s/6m1vo59cebm6xjz/twobranch_v2.pkl
+
+CUDNN_TAR_FILE="cudnn-8.0-linux-x64-v6.0.tgz"
+wget http://developer.download.nvidia.com/compute/redist/cudnn/v6.0/${CUDNN_TAR_FILE}
+tar -xzvf ${CUDNN_TAR_FILE}
+sudo cp -P cuda/include/cudnn.h /usr/local/cuda-8.0/include
+sudo cp -P cuda/lib64/libcudnn* /usr/local/cuda-8.0/lib64/
+sudo chmod a+r /usr/local/cuda-8.0/lib64/libcudnn*
+
+cd ../../
+
+wget http://repo.continuum.io/archive/Anaconda2-5.0.1-Linux-x86_64.sh
+bash Anaconda2-5.0.1-Linux-x86_64.sh
+export PATH=“/home/ubuntu/anaconda2/bin:$PATH”
+conda create --name venv python=2.7 anaconda
+source activate venv
+pip install Cython Jinja2 MarkupSafe opencv-python Pillow Pygments appnope argparse backports-abc backports.ssl-match-hostname certifi cycler decorator future gnureadline h5py ipykernel ipython ipython-genutils ipywidgets jsonschema jupyter jupyter-client jupyter-console jupyter-core matplotlib mistune nbconvert nbformat nltk notebook numpy path.py pexpect pickleshare ptyprocess pyparsing python-dateutil pytz pyzmq qtconsole scipy simplegeneric singledispatch site six tensorflow tensorflow-gpu terminado tflearn tornado traitlets
+
