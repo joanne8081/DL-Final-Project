@@ -110,30 +110,31 @@ lamp.shadow_method = 'NOSHADOW'
 # Possibly disable specular shading:
 lamp.use_specular = False
 
-# Add another light source so stuff facing away from light is not completely dark
+# Add another light sources so stuff facing away from light is not completely dark
 bpy.ops.object.lamp_add(type='SUN')
 lamp2 = bpy.data.lamps['Sun']
 lamp2.shadow_method = 'NOSHADOW'
 lamp2.use_specular = False
-lamp2.energy = 0.75
+lamp2.energy = 0.25
 bpy.data.objects['Sun'].rotation_euler = bpy.data.objects['Lamp'].rotation_euler
-bpy.data.objects['Sun'].rotation_euler[0] += 90
+bpy.data.objects['Sun'].rotation_euler[0] += 180
 
 bpy.ops.object.lamp_add(type='SUN')
 lamp3 = bpy.data.lamps['Sun.001']
 lamp3.shadow_method = 'NOSHADOW'
 lamp3.use_specular = False
-lamp3.energy = 0.75
+lamp3.energy = 0.25
 bpy.data.objects['Sun.001'].rotation_euler = bpy.data.objects['Lamp'].rotation_euler
-bpy.data.objects['Sun.001'].rotation_euler[0] += 180
+bpy.data.objects['Sun.001'].rotation_euler[1] += 180
 
 bpy.ops.object.lamp_add(type='SUN')
 lamp4 = bpy.data.lamps['Sun.002']
 lamp4.shadow_method = 'NOSHADOW'
 lamp4.use_specular = False
-lamp4.energy = 0.75
+lamp4.energy = 0.25
 bpy.data.objects['Sun.002'].rotation_euler = bpy.data.objects['Lamp'].rotation_euler
-bpy.data.objects['Sun.002'].rotation_euler[0] += 270
+bpy.data.objects['Sun.002'].rotation_euler[2] += 180
+
 
 def parent_obj_to_camera(b_camera):
     origin = (0, 0, 0)
@@ -153,7 +154,7 @@ scene.render.resolution_y = 192
 scene.render.resolution_percentage = 100
 scene.render.alpha_mode = 'TRANSPARENT'
 cam = scene.objects['Camera']
-cam.location = Vector((10, 10, -0.8))
+cam.location = Vector((6, 6, -0.8))
 cam_constraint = cam.constraints.new(type='TRACK_TO')
 cam_constraint.track_axis = 'TRACK_NEGATIVE_Z'
 cam_constraint.up_axis = 'UP_Y'
