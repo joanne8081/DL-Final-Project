@@ -136,6 +136,7 @@ def finetune(resourceid,keyname,weightsfile,batch_number):
 		os.system("mkdir -p %s"%dumpdir)
 	img_inp,x,pt_gt,loss,optimizer,batchno,batchnoinc,mindist,loss_nodecay,dists_forward,dists_backward,dist0=build_graph(resourceid)
 	config=tf.ConfigProto()
+	#config.gpu_options.per_process_gpu_memory_fraction = 0.90
 	config.gpu_options.allow_growth=True
 	config.allow_soft_placement=True
 	saver=tf.train.Saver()
@@ -302,6 +303,20 @@ def testpredictions(resourceid,keyname,valnum,modeldir):
 				np.savetxt(outfile,pred[j],fmt='%8.6f',delimiter=' ',newline='\n')
 			print i,'time',time.time()-t0,cnt
 
+def exportpkl(resourceid,keyname,modeldir):
+	img_inp,x,pt_gt,loss,optimizer,batchno,batchnoinc,mindist,loss_nodecay,dists_forward,dists_backward,dist0=build_graph(resourceid)
+	config=tf.ConfigProto()
+	config.gpu_options.allow_growth=True
+	config.allow_soft_placement=True
+	saver=tf.train.Saver()
+	fout = open("%s/twobranch_%s.pkl"%(dumpdir,keyname),'wb')
+	with tf.Session(config=config) as sess:
+		sess.run(tf.global_variables_initializer())
+		saver.restore(sess,"%s/%s.ckpt"%(modeldir,keyname))
+		for t in tf.trainable_variables():
+			print('Saving weights: '+t.name)
+			pickle.dump((t.name, sess.run(t)),fout,protocol=-1)
+
 if __name__=='__main__':
 	resourceid = 0
 	datadir,dumpdir,cmd,valnum="data","dump","predict",3
@@ -324,7 +339,7 @@ if __name__=='__main__':
 		datadir = datadir[:-1]
 	if dumpdir[-1]=='/':
 		dumpdir = dumpdir[:-1]
-	assert os.path.exists(datadir),"data dir not exists"
+	#assert os.path.exists(datadir),"data dir not exists"
 	os.system("mkdir -p %s"%dumpdir)
 	fetchworker=BatchFetcher(datadir)
 	print "datadir=%s dumpdir=%s num=%d cmd=%s started"%(datadir,dumpdir,valnum,cmd)
@@ -339,6 +354,8 @@ if __name__=='__main__':
 			testpredictions(resourceid,keyname,valnum,modeldir)
 		elif cmd=="finetune":
 			finetune(resourceid,keyname,weightsfile,batchno)
+		elif cmd=="exportpkl":
+			exportpkl(resourceid,keyname,modeldir)
 		else:
 			assert False,"format wrong"
 	finally:
