@@ -17,8 +17,8 @@ import tf_nndistance_1 as tf_nndistance
 import cPickle as pickle
 
 #from BatchFetcher import *
-from BatchFetcher_1 import *
-
+#from BatchFetcher_1 import *
+from BatchFetcher2 import *
 
 lastbatch=None
 lastconsumed=FETCH_BATCH_SIZE
