@@ -55,7 +55,7 @@ class BatchFetcher(threading.Thread):
 		datalist = os.listdir(self.datadir)
 		datalist = [x for x in datalist if x!='0']
 		data=np.zeros((FETCH_BATCH_SIZE,NUM_VIEW,HEIGHT,WIDTH,4),dtype='float32')
-		ptcloud=np.zeros((FETCH_BATCH_SIZE,NUM_VIEW,POINTCLOUDSIZE,3),dtype='float32')		
+		ptcloud=np.zeros((FETCH_BATCH_SIZE,POINTCLOUDSIZE,3),dtype='float32')		
 		validating = np.random.randint(16,size=FETCH_BATCH_SIZE)==0
 		for i in range(FETCH_BATCH_SIZE):
 			pokenum = datalist[bno]
@@ -65,7 +65,8 @@ class BatchFetcher(threading.Thread):
 				path2txt = os.path.join(self.datadir, pokenum, pokenum+'.txt')
 				single_data, single_ptcloud=self.fetch_single(path2png, path2txt)
 				data[i,j,:,:,:] = single_data
-				ptcloud[i,j,:,:] = single_ptcloud
+				if j==0:
+					ptcloud[i,:,:] = single_ptcloud
  
 		return (data,ptcloud,validating)
 
