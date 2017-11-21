@@ -66,7 +66,7 @@ class BatchFetcher(threading.Thread):
 		data[:,:,:,:3]=color*(1/255.0)
 		data[:,:,:,3]=depth==0
 		validating=np.array([i[0]=='f' for i in keynames],dtype='float32')
-        ptcloud = ptcloud[:,:POINTCLOUDSIZE,:]
+		ptcloud = ptcloud[:,:POINTCLOUDSIZE,:]
 		return (data,ptcloud,validating)
 	def run(self):
 		while self.bno<BATCH_NUMBER and not self.stopped:
