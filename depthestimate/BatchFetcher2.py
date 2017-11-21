@@ -18,10 +18,10 @@ FETCH_BATCH_SIZE=30
 BATCH_SIZE=30
 HEIGHT=192
 WIDTH=256
-POINTCLOUDSIZE=16384
+POINTCLOUDSIZE=4096
 OUTPUTPOINTS=1024
 REEBSIZE=1024
-BATCH_MAX_COUNT=76 # Original 300000
+BATCH_NUMBER=76 # Original 300000
 
 class BatchFetcher(threading.Thread):
 	def __init__(self, dataname):
@@ -29,18 +29,19 @@ class BatchFetcher(threading.Thread):
 		self.queue=Queue.Queue(64)
 		self.stopped=False
 		self.datadir = dataname
-		self.bno=0
-	def fetch_single(path2png, path2txt):
-		image = Image.open(path2png)
-		data = np.array(image)
-		data[:,:,:3] = data[:,:,:3]/255.0
-		data[:,:,3] = 1.0*(data[:,:,3]==0) + (data[:,:,3]!=0)
+		self.bno=1
+
+	def fetch_single(self,path2png, path2txt):
+		image = np.array(Image.open(path2png))
+		data = np.zeros(image.shape)
+		data[:,:,:3] = image[:,:,:3]/255.0
+		data[:,:,3] = image[:,:,3]!=0
 		temp1 = path2png.partition('_')[2]
-		theta = int(temp1.partition('.')[0])/180*math.pi
-		ptcloud = np.load(path2txt)
+		theta = int(temp1.partition('.')[0])*12*math.pi/180
+		ptcloud = np.loadtxt(path2txt)
 		ptcloud = ptcloud.dot(np.array([[np.cos(theta), -np.sin(theta), 0],[np.sin(theta), np.cos(theta),0],[0,0,1]]))
 		repnum = POINTCLOUDSIZE//ptcloud.shape[0] + 1
-		ptcloud = np.matlib.repmat(aa,repnum,1)
+		ptcloud = np.matlib.repmat(ptcloud,repnum,1)
 		ptcloud = ptcloud[0:POINTCLOUDSIZE,:]
 		return data, ptcloud
 		
@@ -96,7 +97,7 @@ class BatchFetcher(threading.Thread):
 			pokenum = "{0:03d}".format(bno)
 			path2png = os.path.join(self.datadir, pokenum, pokenum+'_{}.png'.format(i))
 			path2txt = os.path.join(self.datadir, pokenum, pokenum+'.txt')
-			single_data, single_ptcloud=fetch_single(path2png, path2txt)
+			single_data, single_ptcloud=self.fetch_single(path2png, path2txt)
 			data[i,:,:,:] = single_data
 			ptcloud[i,:,:] = single_ptcloud
  
@@ -104,8 +105,8 @@ class BatchFetcher(threading.Thread):
 
 
 	def run(self):
-		while self.bno<BATCH_MAX_COUNT and not self.stopped:
-			self.queue.put(self.work(self.bno%BATCH_MAX_COUNT))
+		while self.bno<BATCH_NUMBER and not self.stopped:
+			self.queue.put(self.work(self.bno%BATCH_NUMBER))
 			self.bno+=1
 	def fetch(self):
 		if self.stopped:
@@ -119,7 +120,7 @@ class BatchFetcher(threading.Thread):
 if __name__=='__main__':
 	dataname = "YTTRBtraindump_220k"
 	fetchworker = BatchFetcher(dataname)
-	fetchworker.bno=0
+	fetchworker.bno=1
 	fetchworker.start()
 	for cnt in xrange(100):
 		data,ptcloud,validating = fetchworker.fetch()
