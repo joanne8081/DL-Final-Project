@@ -147,14 +147,14 @@ def build_mv_graph(resourceid):
 			x=tflearn.layers.conv.conv_2d(x,128,(3,3),strides=1,activation='relu',weight_decay=1e-5,regularizer='L2',reuse=reuse)
 			x=tflearn.layers.conv.conv_2d(x,128,(3,3),strides=1,activation='relu',weight_decay=1e-5,regularizer='L2',reuse=reuse)
 			x3=x
-			view_pool_x3.append(x3, axis=0)
+			tf.concat([view_pool_x3, tf.expand_dims(x3, axis=0)], 0)
 
 			x=tflearn.layers.conv.conv_2d(x,256,(3,3),strides=2,activation='relu',weight_decay=1e-5,regularizer='L2',reuse=reuse)
 #12 16
 			x=tflearn.layers.conv.conv_2d(x,256,(3,3),strides=1,activation='relu',weight_decay=1e-5,regularizer='L2',reuse=reuse)
 			x=tflearn.layers.conv.conv_2d(x,256,(3,3),strides=1,activation='relu',weight_decay=1e-5,regularizer='L2',reuse=reuse)
 			x4=x
-			view_pool_x4.append(x4, axis=0)
+			tf.concat([view_pool_x4, tf.expand_dims(x4, axis=0)], 0)
 
 			x=tflearn.layers.conv.conv_2d(x,512,(3,3),strides=2,activation='relu',weight_decay=1e-5,regularizer='L2',reuse=reuse)
 #6 8
@@ -162,12 +162,12 @@ def build_mv_graph(resourceid):
 			x=tflearn.layers.conv.conv_2d(x,512,(3,3),strides=1,activation='relu',weight_decay=1e-5,regularizer='L2',reuse=reuse)
 			x=tflearn.layers.conv.conv_2d(x,512,(3,3),strides=1,activation='relu',weight_decay=1e-5,regularizer='L2',reuse=reuse)
 			x5=x
-			view_pool_x5.append(x5, axis=0)
+			tf.concat([view_pool_x5, tf.expand_dims(x5, axis=0)], 0)
 
 			x=tflearn.layers.conv.conv_2d(x,512,(5,5),strides=2,activation='relu',weight_decay=1e-5,regularizer='L2',reuse=reuse)
 #3 4
 			# end of encoder, one x vector for one view image
-			view_pool_enc.append(x, axis=0) # view_pool_enc ~ (V,N,H,W,C)
+			tf.concat([view_pool_enc, tf.expand_dims(x, axis=0)], 0) # view_pool_enc ~ (V,N,H,W,C)
 
 		x = view_pool(view_pool_enc, 'enc_vp')
 
