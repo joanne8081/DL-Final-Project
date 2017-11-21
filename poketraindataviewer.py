@@ -24,9 +24,9 @@ def fetch_single(path2png, path2txt):
 	data[:,:,3] = image[:,:,3]==0
 	#print(np.sum(data[:,:,3]==0))
 	temp1 = path2png.partition('_')[2]
-	theta = int(temp1.partition('.')[0])*12*math.pi/180
+	theta = (int(temp1.partition('.')[0])+11)*12*math.pi/180
 	ptcloud = np.loadtxt(path2txt)
-	ptcloud = ptcloud.dot(np.array([[np.cos(theta),0, np.sin(theta)],[0,1,0],[-np.sin(theta),0, np.cos(theta)]]))
+	ptcloud = ptcloud.dot(np.array([[np.cos(theta),0, np.sin(theta)],[0,1,0],[-np.sin(theta),0, np.cos(theta)]])).dot(np.array([[np.cos(math.pi/2), np.sin(math.pi/2),0],[-np.sin(math.pi/2), np.cos(math.pi/2),0],[0,0,1]]))
 	repnum = 5
 	ptcloud = numpy.matlib.repmat(ptcloud,repnum,1)
 	ptcloud = ptcloud[0:POINTCLOUDSIZE,:]
