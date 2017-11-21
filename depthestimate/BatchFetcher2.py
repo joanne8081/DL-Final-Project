@@ -35,7 +35,7 @@ class BatchFetcher(threading.Thread):
 		image = np.array(Image.open(path2png))
 		data = np.zeros(image.shape)
 		data[:,:,:3] = image[:,:,:3]/255.0
-		data[:,:,3] = image[:,:,3]!=0
+		data[:,:,3] = image[:,:,3]==0
 		temp1 = path2png.partition('_')[2]
 		theta = int(temp1.partition('.')[0])*12*math.pi/180
 		ptcloud = np.loadtxt(path2txt)
@@ -93,8 +93,8 @@ class BatchFetcher(threading.Thread):
 		data=np.zeros((FETCH_BATCH_SIZE,HEIGHT,WIDTH,4),dtype='float32')
 		ptcloud=np.zeros((FETCH_BATCH_SIZE,POINTCLOUDSIZE,3),dtype='float32')		
 		validating = np.random.randint(16,size=FETCH_BATCH_SIZE)==0
-		for i in range(FETCH_BATCH_SIZE)
-			pokenum = "{0:03d}".format(bno)
+		for i in range(FETCH_BATCH_SIZE):
+			pokenum = "{0:03d}".format(bno+1)
 			path2png = os.path.join(self.datadir, pokenum, pokenum+'_{}.png'.format(i))
 			path2txt = os.path.join(self.datadir, pokenum, pokenum+'.txt')
 			single_data, single_ptcloud=self.fetch_single(path2png, path2txt)
