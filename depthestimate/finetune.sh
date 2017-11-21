@@ -35,8 +35,6 @@ if [ "$tarn" -eq 0 ]; then
 		$cmd
 		done
 	done
-	cmd="cp $PKLFILE2 $PSFILE2"
-	$cmd
 	tar zcvf $TARFILE $PSFILE2 >> garbage.txt
 	rm -rf $PSFILE2
 fi
