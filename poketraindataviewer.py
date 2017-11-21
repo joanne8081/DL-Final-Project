@@ -1,3 +1,5 @@
+# Pokemon train viewier
+# Usage: python poketraindataviewer.py data/001 <- pokemon number
 import numpy as np
 import numpy.matlib
 import cv2
@@ -7,7 +9,6 @@ import os
 import scipy.misc
 from PIL import Image
 
-BATCH_SIZE=32
 BATCH_SIZE2=30
 HEIGHT=192
 WIDTH=256
@@ -20,7 +21,7 @@ def fetch_single(path2png, path2txt):
 	image = np.array(Image.open(path2png))
 	data = np.zeros(image.shape)
 	data[:,:,:3] = image[:,:,:3]/255.0
-	data[:,:,3] = image[:,:,3]!=0
+	data[:,:,3] = image[:,:,3]==0
 	#print(np.sum(data[:,:,3]==0))
 	temp1 = path2png.partition('_')[2]
 	theta = int(temp1.partition('.')[0])*12*math.pi/180
@@ -31,28 +32,27 @@ def fetch_single(path2png, path2txt):
 	ptcloud = ptcloud[0:POINTCLOUDSIZE,:]
 	return data, ptcloud
 
-def loadFile(path):
+def loadFile(path, pokenum):
 	data=np.zeros((BATCH_SIZE2,HEIGHT,WIDTH,4),dtype='float32')
 	ptcloud=np.zeros((BATCH_SIZE2,POINTCLOUDSIZE,3),dtype='float32')		
 	for i in range(BATCH_SIZE2):
-		pokenum = "{0:03d}".format(1)
-		path2png = os.path.join(path, pokenum, pokenum+'_{}.png'.format(i))
-		path2txt = os.path.join(path, pokenum, pokenum+'.txt')
+		path2png = os.path.join(path, pokenum+'_{}.png'.format(i))
+		path2txt = os.path.join(path, pokenum+'.txt')
 		single_data, single_ptcloud=fetch_single(path2png, path2txt)
 		data[i,:,:,:] = single_data
 		ptcloud[i,:,:] = single_ptcloud
 
  	color = data[:,:,:,:3]*255
-	depth = np.uint16(data[:,:,:,3]*255)
-	print(np.sum(depth==255)/32)
+	color = color.dot([[0,0,1],[0,1,0],[1,0,0]])
+	depth = np.uint16((data[:,:,:,3]==0)*255)
 	keynames ='dummy string hahaha not long enough might crash' #string length needs to > 30=BATCH SIZE
-'''
+	'''
 	for i in range(BATCH_SIZE2):
 		path2 = './001_{}_RGB.png'.format(i)
 		path3 = './001_{}_mask.png'
 		scipy.misc.imsave(path2,data[i,:,:,:3]) 
 		scipy.misc.imsave(path3,depth[i,:,:])
-'''
+	'''	
 	return color,depth,ptcloud,keynames
 
 	
@@ -102,13 +102,14 @@ if __name__=='__main__':
 		return output
 	import sys
 	import show3d
-	if len(sys.argv)<2:
-		print 'python traindataviewer.py data/0/0.gz'
+	if len(sys.argv)!=2:
+		print 'Format: python poketraindataviewer.py data/001'
 		sys.exit(0)
 	ifname=sys.argv[1]
+	pokenum = ifname.split('/')[-1]
 	#color,depth,ptcloud,keynames=loadBinFile(ifname)
 
-	color,depth,ptcloud,keynames=loadFile(ifname)
+	color,depth,ptcloud,keynames=loadFile(ifname,pokenum)
 	#print(rotmat)
 	#print(ptcloud)
 	#print(depth)
