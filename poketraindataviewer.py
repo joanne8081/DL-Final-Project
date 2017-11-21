@@ -45,6 +45,11 @@ def loadFile(path, pokenum):
  	color = data[:,:,:,:3]*255
 	color = color.dot([[0,0,1],[0,1,0],[1,0,0]])
 	depth = np.uint16((data[:,:,:,3]==0)*255)
+	mask = np.zeros(color.shape)
+	for i in range(3):
+		mask[:,:,:,i] = (data[:,:,:,3]==0)
+	
+	color = color*mask + 191*(1-mask)
 	keynames ='dummy string hahaha not long enough might crash' #string length needs to > 30=BATCH SIZE
 	'''
 	for i in range(BATCH_SIZE2):
