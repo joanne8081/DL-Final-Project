@@ -14,7 +14,7 @@ xvfb-run -a python nn_mv.py data=$DATAFILE dump=$DUMPFILE pkl=../demo/twobranch_
 for number in `seq 1 $6`; 
 do
 echo =================================Epoch $number===================================
-value=`echo $6 | sed -e 's/[eE]+*/\\*10\\^/'`
+value=`echo $7 | sed -e 's/[eE]+*/\\*10\\^/'`
 learning_rate=`echo "$value*((0.99)^$number)" | bc -l`
 xvfb-run -a python nn_mv.py model=$DUMPFILE dump=$PKLFILE lr=$learning_rate exportpkl >> garbage.txt
 xvfb-run -a python nn_mv.py data=$DATAFILE dump=$DUMPFILE pkl=$PKLFILE2 bno=$5 lr=$learning_rate mvfinetune >> garbage.txt

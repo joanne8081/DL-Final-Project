@@ -14,7 +14,7 @@ xvfb-run -a python nn.py data=$DATAFILE dump=$DUMPFILE pkl=../demo/twobranch_v2.
 for number in `seq 1 $6`; 
 do
 echo =================================Epoch $number===================================
-value=`echo $6 | sed -e 's/[eE]+*/\\*10\\^/'`
+value=`echo $7 | sed -e 's/[eE]+*/\\*10\\^/'`
 learning_rate=`echo "$value*((0.99)^$number)" | bc -l`
 xvfb-run -a python nn.py model=$DUMPFILE dump=$PKLFILE lr=$learning_rate exportpkl >> garbage.txt
 xvfb-run -a python nn.py data=$DATAFILE dump=$DUMPFILE pkl=$PKLFILE2 bno=$5 lr=$learning_rate finetune >> garbage.txt
@@ -24,7 +24,7 @@ if [ "$tarn" -eq 0 ]; then
 	PSFILE2="${PSFILE}_cp"
 	mkdir $PSFILE2
 	echo Do Test and Copy to $PSFILE2 and Tar to $TARFILE
-	xvfb-run -a python nn.py data=$DATAFILE model=$DUMPFILE dump=$PSFILE num=$8 test >> garbage.txt
+	xvfb-run -a python nn.py data=$DATAFILE model=$DUMPFILE dump=$PSFILE num=$8
 	testsize=`echo "$8 - 1" | bc`
 	echo $textsize
 	for n in `seq 0 $testsize`;
