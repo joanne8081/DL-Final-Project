@@ -97,6 +97,7 @@ class BatchFetcher(threading.Thread):
 
 		datalist = os.listdir(self.datadir)
 		datalist = [x for x in datalist if x!='0']
+		datalist = sorted(datalist)
 		data=np.zeros((FETCH_BATCH_SIZE,HEIGHT,WIDTH,4),dtype='float32')
 		ptcloud=np.zeros((FETCH_BATCH_SIZE,POINTCLOUDSIZE,3),dtype='float32')		
 		validating = np.random.randint(16,size=FETCH_BATCH_SIZE)==0
