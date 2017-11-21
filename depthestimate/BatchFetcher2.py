@@ -31,15 +31,19 @@ class BatchFetcher(threading.Thread):
 		self.datadir = dataname
 		self.bno=1
 
-	def fetch_single(self,path2png, path2txt):
+	def fetch_single(self, path2png, path2txt):
 		image = np.array(Image.open(path2png))
 		data = np.zeros(image.shape)
-		data[:,:,:3] = image[:,:,:3]/255.0
+		mask = np.zeros(data[:,:,:3].shape)
+		for i in range(3):
+			mask[:,:,i] = (image[:,:,3]!=0)
+		
+		data[:,:,:3] = (image[:,:,:3]*mask + 191*(1-mask))/255.0
 		data[:,:,3] = image[:,:,3]==0
 		temp1 = path2png.partition('_')[2]
 		theta = int(temp1.partition('.')[0])*12*math.pi/180
 		ptcloud = np.loadtxt(path2txt)
-		ptcloud = ptcloud.dot(np.array([[np.cos(theta), -np.sin(theta), 0],[np.sin(theta), np.cos(theta),0],[0,0,1]]))
+		ptcloud = ptcloud.dot(np.array([[np.cos(theta),0, np.sin(theta)],[0,1,0],[-np.sin(theta),0, np.cos(theta)]]))
 		repnum = POINTCLOUDSIZE//ptcloud.shape[0] + 1
 		ptcloud = np.matlib.repmat(ptcloud,repnum,1)
 		ptcloud = ptcloud[0:POINTCLOUDSIZE,:]

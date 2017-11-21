@@ -26,7 +26,7 @@ def fetch_single(path2png, path2txt):
 	temp1 = path2png.partition('_')[2]
 	theta = int(temp1.partition('.')[0])*12*math.pi/180
 	ptcloud = np.loadtxt(path2txt)
-	ptcloud = ptcloud.dot(np.array([[np.cos(theta), -np.sin(theta), 0],[np.sin(theta), np.cos(theta),0],[0,0,1]]))
+	ptcloud = ptcloud.dot(np.array([[np.cos(theta),0, np.sin(theta)],[0,1,0],[-np.sin(theta),0, np.cos(theta)]]))
 	repnum = 5
 	ptcloud = numpy.matlib.repmat(ptcloud,repnum,1)
 	ptcloud = ptcloud[0:POINTCLOUDSIZE,:]
@@ -49,6 +49,7 @@ def loadFile(path, pokenum):
 	for i in range(3):
 		mask[:,:,:,i] = (data[:,:,:,3]==0)
 	
+	print(np.sum(mask==0))
 	color = color*mask + 191*(1-mask)
 	keynames ='dummy string hahaha not long enough might crash' #string length needs to > 30=BATCH SIZE
 	'''
