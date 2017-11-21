@@ -18,7 +18,8 @@ import cPickle as pickle
 
 #from BatchFetcher import *
 #from BatchFetcher_1 import *
-from BatchFetcher2 import *
+#from BatchFetcher2 import *
+from BatchFetcherPoke import *
 
 lastbatch=None
 lastconsumed=FETCH_BATCH_SIZE
@@ -120,10 +121,10 @@ def build_mv_graph(resourceid):
 		# transpose views: (N,V,H,W,C) -> (V,N,H,W,C)
 		img_inp = tf.transpose(img_inp, perm=[1,0,2,3,4])
 
-		view_pool_enc = []
-		view_pool_x3 = []
-		view_pool_x4 = []
-		view_pool_x5 = []
+		view_pool_enc = tf.zeros([NUM_VIEW, BATCH_SIZE, 3, 4, 512])
+		view_pool_x3 = tf.zeros([NUM_VIEW, BATCH_SIZE, 24, 32, 128])
+		view_pool_x4 = tf.zeros([NUM_VIEW, BATCH_SIZE, 12, 16, 256])
+		view_pool_x5 = tf.zeros([NUM_VIEW, BATCH_SIZE, 6, 8, 512])
 		for viewIdx in range(NUM_VIEW):
 			# set reuse True for viewIdx > 0 for weight sharing
 			reuse = (viewIdx != 0)
@@ -147,14 +148,16 @@ def build_mv_graph(resourceid):
 			x=tflearn.layers.conv.conv_2d(x,128,(3,3),strides=1,activation='relu',weight_decay=1e-5,regularizer='L2',reuse=reuse)
 			x=tflearn.layers.conv.conv_2d(x,128,(3,3),strides=1,activation='relu',weight_decay=1e-5,regularizer='L2',reuse=reuse)
 			x3=x
-			tf.concat([view_pool_x3, tf.expand_dims(x3, axis=0)], 0)
+			view_pool_x3[viewIdx,:,:,:,:] = x3
+			#tf.concat([view_pool_x3, tf.expand_dims(x3, axis=0)], 0)
 
 			x=tflearn.layers.conv.conv_2d(x,256,(3,3),strides=2,activation='relu',weight_decay=1e-5,regularizer='L2',reuse=reuse)
 #12 16
 			x=tflearn.layers.conv.conv_2d(x,256,(3,3),strides=1,activation='relu',weight_decay=1e-5,regularizer='L2',reuse=reuse)
 			x=tflearn.layers.conv.conv_2d(x,256,(3,3),strides=1,activation='relu',weight_decay=1e-5,regularizer='L2',reuse=reuse)
 			x4=x
-			tf.concat([view_pool_x4, tf.expand_dims(x4, axis=0)], 0)
+			view_pool_x4[viewIdx,:,:,:,:] = x4
+			#tf.concat([view_pool_x4, tf.expand_dims(x4, axis=0)], 0)
 
 			x=tflearn.layers.conv.conv_2d(x,512,(3,3),strides=2,activation='relu',weight_decay=1e-5,regularizer='L2',reuse=reuse)
 #6 8
@@ -162,12 +165,14 @@ def build_mv_graph(resourceid):
 			x=tflearn.layers.conv.conv_2d(x,512,(3,3),strides=1,activation='relu',weight_decay=1e-5,regularizer='L2',reuse=reuse)
 			x=tflearn.layers.conv.conv_2d(x,512,(3,3),strides=1,activation='relu',weight_decay=1e-5,regularizer='L2',reuse=reuse)
 			x5=x
-			tf.concat([view_pool_x5, tf.expand_dims(x5, axis=0)], 0)
+			view_pool_x5[viewIdx,:,:,:,:] = x5
+			#tf.concat([view_pool_x5, tf.expand_dims(x5, axis=0)], 0)
 
 			x=tflearn.layers.conv.conv_2d(x,512,(5,5),strides=2,activation='relu',weight_decay=1e-5,regularizer='L2',reuse=reuse)
 #3 4
 			# end of encoder, one x vector for one view image
-			tf.concat([view_pool_enc, tf.expand_dims(x, axis=0)], 0) # view_pool_enc ~ (V,N,H,W,C)
+			view_pool_enc[viewIdx,:,:,:,:] = x
+			#tf.concat([view_pool_enc, tf.expand_dims(x, axis=0)], 0) # view_pool_enc ~ (V,N,H,W,C)
 
 		x = view_pool(view_pool_enc, 'enc_vp')
 
