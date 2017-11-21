@@ -14,6 +14,7 @@ import cPickle as pickle
 import show3d
 from PIL import Image
 
+NUM_VIEW = 5
 FETCH_BATCH_SIZE=30
 BATCH_SIZE=30
 HEIGHT=192
@@ -21,7 +22,7 @@ WIDTH=256
 POINTCLOUDSIZE=4096
 OUTPUTPOINTS=1024
 REEBSIZE=1024
-BATCH_NUMBER=120 # Original 300000
+BATCH_NUMBER=76 # Original 300000
 
 class BatchFetcher(threading.Thread):
 	def __init__(self, dataname):
@@ -94,14 +95,14 @@ class BatchFetcher(threading.Thread):
 		data[:,:,:,3]=depth==0
 		validating=np.array([i[0]=='f' for i in keynames],dtype='float32')
 		'''
-
 		datalist = os.listdir(self.datadir)
 		datalist = [x for x in datalist if x!='0']
+
 		data=np.zeros((FETCH_BATCH_SIZE,HEIGHT,WIDTH,4),dtype='float32')
 		ptcloud=np.zeros((FETCH_BATCH_SIZE,POINTCLOUDSIZE,3),dtype='float32')		
 		validating = np.random.randint(16,size=FETCH_BATCH_SIZE)==0
 		for i in range(FETCH_BATCH_SIZE):
-			pokenum = datalist[bno]
+			pokenum = "{0:03d}".format(bno+1)
 			path2png = os.path.join(self.datadir, pokenum, pokenum+'_{}.png'.format(i))
 			path2txt = os.path.join(self.datadir, pokenum, pokenum+'.txt')
 			single_data, single_ptcloud=self.fetch_single(path2png, path2txt)
