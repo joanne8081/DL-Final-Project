@@ -18,7 +18,8 @@ FETCH_BATCH_SIZE=32
 BATCH_SIZE=32
 HEIGHT=192
 WIDTH=256
-POINTCLOUDSIZE=16384
+POINTCLOUDSIZE=4096
+POINTCLOUDSIZE2=16384
 OUTPUTPOINTS=1024
 REEBSIZE=1024
 
@@ -44,7 +45,7 @@ class BatchFetcher(threading.Thread):
 		p+=FETCH_BATCH_SIZE*HEIGHT*WIDTH*2
 		rotmat=np.fromstring(binfile[p:p+FETCH_BATCH_SIZE*3*3*4],dtype='float32').reshape((FETCH_BATCH_SIZE,3,3))
 		p+=FETCH_BATCH_SIZE*3*3*4
-		ptcloud=np.fromstring(binfile[p:p+FETCH_BATCH_SIZE*POINTCLOUDSIZE*3],dtype='uint8').reshape((FETCH_BATCH_SIZE,POINTCLOUDSIZE,3))
+		ptcloud=np.fromstring(binfile[p:p+FETCH_BATCH_SIZE*POINTCLOUDSIZE2*3],dtype='uint8').reshape((FETCH_BATCH_SIZE,POINTCLOUDSIZE2,3))
 		ptcloud=ptcloud.astype('float32')/255
 		beta=math.pi/180*20
 		viewmat=np.array([[
@@ -54,7 +55,7 @@ class BatchFetcher(threading.Thread):
 		rotmat=rotmat.dot(np.linalg.inv(viewmat))
 		for i in xrange(FETCH_BATCH_SIZE):
 			ptcloud[i]=((ptcloud[i]-[0.7,0.5,0.5])/0.4).dot(rotmat[i])+[1,0,0]
-		p+=FETCH_BATCH_SIZE*POINTCLOUDSIZE*3
+		p+=FETCH_BATCH_SIZE*POINTCLOUDSIZE2*3
 		reeb=np.fromstring(binfile[p:p+FETCH_BATCH_SIZE*REEBSIZE*2*4],dtype='uint16').reshape((FETCH_BATCH_SIZE,REEBSIZE,4))
 		p+=FETCH_BATCH_SIZE*REEBSIZE*2*4
 		keynames=binfile[p:].split('\n')
@@ -65,6 +66,7 @@ class BatchFetcher(threading.Thread):
 		data[:,:,:,:3]=color*(1/255.0)
 		data[:,:,:,3]=depth==0
 		validating=np.array([i[0]=='f' for i in keynames],dtype='float32')
+        ptcloud = ptcloud[:,:POINTCLOUDSIZE,:]
 		return (data,ptcloud,validating)
 	def run(self):
 		while self.bno<BATCH_NUMBER and not self.stopped:

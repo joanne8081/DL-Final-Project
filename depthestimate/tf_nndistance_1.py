@@ -32,7 +32,7 @@ if __name__=='__main__':
 	random.seed(100)
 	np.random.seed(100)
 	with tf.Session('') as sess:
-		xyz1=np.random.randn(32,16384,3).astype('float32')
+		xyz1=np.random.randn(32,4096,3).astype('float32')
 		xyz2=np.random.randn(32,1024,3).astype('float32')
 		#with tf.device('/gpu:0'):
 		if True:
