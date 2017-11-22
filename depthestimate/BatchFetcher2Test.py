@@ -31,7 +31,7 @@ class BatchFetcherTest(threading.Thread):
 		self.datadir = dataname
 		self.bno=0
 
-	def fetch_single(self, path2png, path2txt):
+	def fetch_single(self, path2png):
 		image = np.array(Image.open(path2png))
 		data = np.zeros(image.shape)
 		mask = np.zeros(data[:,:,:3].shape)
@@ -42,12 +42,12 @@ class BatchFetcherTest(threading.Thread):
 		data[:,:,3] = image[:,:,3]==0
 		temp1 = path2png.partition('_')[2]
 		theta = (int(temp1.partition('.')[0])+11)*12*math.pi/180
-		ptcloud = np.loadtxt(path2txt)
-		ptcloud = ptcloud.dot(np.array([[np.cos(theta),0, np.sin(theta)],[0,1,0],[-np.sin(theta),0, np.cos(theta)]])).dot(np.array([[np.cos(math.pi/2), np.sin(math.pi/2),0],[-np.sin(math.pi/2), np.cos(math.pi/2),0],[0,0,1]]))		
-		repnum = POINTCLOUDSIZE//ptcloud.shape[0] + 1
-		ptcloud = np.matlib.repmat(ptcloud,repnum,1)
-		ptcloud = ptcloud[0:POINTCLOUDSIZE,:]
-		return data, ptcloud
+		#ptcloud = np.loadtxt(path2txt)
+		#ptcloud = ptcloud.dot(np.array([[np.cos(theta),0, np.sin(theta)],[0,1,0],[-np.sin(theta),0, np.cos(theta)]])).dot(np.array([[np.cos(math.pi/2), np.sin(math.pi/2),0],[-np.sin(math.pi/2), np.cos(math.pi/2),0],[0,0,1]]))		
+		#repnum = POINTCLOUDSIZE//ptcloud.shape[0] + 1
+		#ptcloud = np.matlib.repmat(ptcloud,repnum,1)
+		#ptcloud = ptcloud[0:POINTCLOUDSIZE,:]
+		return data#, ptcloud
 		
 	def work(self,bno):
 
@@ -99,17 +99,17 @@ class BatchFetcherTest(threading.Thread):
 		datalist = [x for x in datalist if x!='0']
 		datalist = sorted(datalist)
 		data=np.zeros((FETCH_BATCH_SIZE,HEIGHT,WIDTH,4),dtype='float32')
-		ptcloud=np.zeros((FETCH_BATCH_SIZE,POINTCLOUDSIZE,3),dtype='float32')		
-		validating = np.random.randint(16,size=FETCH_BATCH_SIZE)==0
+		#ptcloud=np.zeros((FETCH_BATCH_SIZE,POINTCLOUDSIZE,3),dtype='float32')		
+		#validating = np.random.randint(16,size=FETCH_BATCH_SIZE)==0
 		for i in range(FETCH_BATCH_SIZE):
 			pokenum = datalist[bno]
 			path2png = os.path.join(self.datadir, pokenum, pokenum+'_{}.png'.format(i))
-			path2txt = os.path.join(self.datadir, pokenum, pokenum+'.txt')
-			single_data, single_ptcloud=self.fetch_single(path2png, path2txt)
+			#path2txt = os.path.join(self.datadir, pokenum, pokenum+'.txt')
+			single_data=self.fetch_single(path2png)
 			data[i,:,:,:] = single_data
-			ptcloud[i,:,:] = single_ptcloud
+			#ptcloud[i,:,:] = single_ptcloud
  
-		return (data,ptcloud,validating)
+		return data
 
 
 	def run(self):
@@ -131,7 +131,7 @@ if __name__=='__main__':
 	fetchworkerTest.bno=0
 	fetchworkerTest.start()
 	for cnt in xrange(100):
-		data,ptcloud,validating = fetchworkerTest.fetch()
+		data = fetchworkerTest.fetch()
 		validating = validating[0]!=0
 		assert len(data)==FETCH_BATCH_SIZE
 		for i in range(len(data)):
