@@ -19,7 +19,6 @@ import cPickle as pickle
 #from BatchFetcher import *
 #from BatchFetcher_1 import *
 from BatchFetcher2 import *
-from BatchFetcher2Test import *
 
 lastbatch=None
 lastconsumed=FETCH_BATCH_SIZE
@@ -293,8 +292,8 @@ def testpredictions(resourceid,keyname,valnum,modeldir):
 	with tf.Session(config=config) as sess:
 		sess.run(tf.global_variables_initializer())
 		saver.restore(sess,"%s/%s.ckpt"%(modeldir,keyname))
-		fetchworkerTest.bno=0
-		fetchworkerTest.start()
+		fetchworker.bno=0
+		fetchworker.start()
 		cnt=0
 		for i in xrange(0,valnum):
 			t0=time.time()
@@ -346,7 +345,6 @@ if __name__=='__main__':
 	#assert os.path.exists(datadir),"data dir not exists"
 	os.system("mkdir -p %s"%dumpdir)
 	fetchworker=BatchFetcher(datadir)
-	fetchworkerTest=BatchFetcherTest(datadir)
 	print "datadir=%s dumpdir=%s num=%d cmd=%s lr=%f started"%(datadir,dumpdir,valnum,cmd,lr)
 	
 	keyname=os.path.basename(__file__).rstrip('.py')
