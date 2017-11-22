@@ -23,7 +23,7 @@ WIDTH=256
 POINTCLOUDSIZE=4096
 OUTPUTPOINTS=1024
 REEBSIZE=1024
-BATCH_NUMBER=76 # Original 300000
+BATCH_NUMBER=120 # Original 300000
 
 class BatchFetcher(threading.Thread):
 	def __init__(self, dataname):
@@ -54,6 +54,7 @@ class BatchFetcher(threading.Thread):
 	def work(self,bno):
 		datalist = os.listdir(self.datadir)
 		datalist = [x for x in datalist if x!='0']
+		datalist = sorted(datalist)
 		data=np.zeros((FETCH_BATCH_SIZE,NUM_VIEW,HEIGHT,WIDTH,4),dtype='float32')
 		ptcloud=np.zeros((FETCH_BATCH_SIZE,POINTCLOUDSIZE,3),dtype='float32')		
 		validating = np.random.randint(16,size=FETCH_BATCH_SIZE)==0
