@@ -74,17 +74,20 @@ def build_mv_graph(resourceid):
 		x=tflearn.layers.conv.conv_2d(x,512,(5,5),scope='Conv2D_18',strides=2,activation='relu',weight_decay=1e-5,regularizer='L2')  # (B*V,3,4,512)
 		# end of encoder, one x vector for one view image
 
-		x = view_pool_lstm(x, 'enc_lstm', 6144)  # (B*V,6144)   6144=3*4*512
-		# print(x.shape)
+		x=tf.reshape(x,(BATCH_SIZE,NUM_VIEW,6144))
+		x = view_pool_lstm(x, 'enc_lstm', 6144)  # (B,V,6144)   6144=3*4*512
 
-		x_additional=tflearn.layers.core.fully_connected(x,2048,scope='FullyConnected',activation='relu',weight_decay=1e-3,regularizer='L2')  # (B*V,2048)
+		x_additional=tf.reshape(x,(BATCH_SIZE*NUM_VIEW,6144))  # (B*V,6144)
+		x_additional=tflearn.layers.core.fully_connected(x_additional,2048,scope='FullyConnected',activation='relu',weight_decay=1e-3,regularizer='L2')  # (B*V,2048)
 		x_additional=tflearn.layers.core.fully_connected(x_additional,1024,scope='FullyConnected_1',activation='relu',weight_decay=1e-3,regularizer='L2')  # (B*V,1024)
 		x_additional=tflearn.layers.core.fully_connected(x_additional,256*3,scope='FullyConnected_2',activation='linear',weight_decay=1e-3,regularizer='L2')  # (B*V,768)
 		x_additional=tf.reshape(x_additional,(BATCH_SIZE,NUM_VIEW,256,3))  # (B,V,256,3)
 
+		x=tf.reshape(x,(BATCH_SIZE*NUM_VIEW,3,4,512))  # (B*V,3,4,512)
 		x=tflearn.layers.conv.conv_2d_transpose(x,256,[5,5],[6,8],scope='Conv2DTranspose',strides=2,activation='linear',weight_decay=1e-5,regularizer='L2')  # (B*V,6,8,256)
 
 		# WIP: do we need reshaping here?
+		x5=tf.reshape(x5,(BATCH_SIZE,NUM_VIEW,24576))
 		x5 = view_pool_lstm(x5, 'x5_lstm', 24576)  # (B*V,24576)    24576=6*8*512
 		# print(x5.shape)
 		x5=tf.reshape(x5, (BATCH_SIZE*NUM_VIEW,6,8,512))  # (B*V,6,8,512)
@@ -95,9 +98,10 @@ def build_mv_graph(resourceid):
 		x=tflearn.layers.conv.conv_2d_transpose(x,128,[5,5],[12,16],scope='Conv2DTranspose_1',strides=2,activation='linear',weight_decay=1e-5,regularizer='L2')  # (B*V,12,16,128)
 
 		# WIP: do we need reshaping here?
+		x4=tf.reshape(x4,(BATCH_SIZE,NUM_VIEW,49152))
 		x4 = view_pool_lstm(x4, 'x4_lstm', 49152)  # (B*V,49152)    49152=12*16*256
 		# print(x4.shape)
-		x4=tf.reshape(x4, (BATCH_SIZE*NUM_VIEW,12,16,256)
+		x4=tf.reshape(x4, (BATCH_SIZE*NUM_VIEW,12,16,256))
 
 		x4=tflearn.layers.conv.conv_2d(x4,128,(3,3),scope='Conv2D_21',strides=1,activation='linear',weight_decay=1e-5,regularizer='L2')  # (B*V,12,16,128)
 		x=tf.nn.relu(tf.add(x,x4))
@@ -105,7 +109,8 @@ def build_mv_graph(resourceid):
 		x=tflearn.layers.conv.conv_2d_transpose(x,64,[5,5],[24,32],scope='Conv2DTranspose_2',strides=2,activation='relu',weight_decay=1e-5,regularizer='L2')
 
 		# WIP: do we need reshaping here?
-		x3 = view_pool_lstm(view_pool_x3, 'x3_lstm', 98304)  # (B*V,98304)    98304=24*32*128
+		x3=tf.reshape(x3,(BATCH_SIZE,NUM_VIEW,98304))
+		x3 = view_pool_lstm(x3, 'x3_lstm', 98304)  # (B*V,98304)    98304=24*32*128
 		# print(x3.shape)
 		x3=tf.reshape(x3, (BATCH_SIZE*NUM_VIEW,24,32,128))
 
@@ -119,10 +124,10 @@ def build_mv_graph(resourceid):
 		x=tf.reshape(x,(BATCH_SIZE,NUM_VIEW,OUTPUTPOINTS,3))  # WIP: do we really need this line?
 
 		# figure out the input size for nndistance
-		pt_gt_bv=tf.reshape(pt_gt,(BATCH_SIZE*NUM_VIEW,OUTPUTPOINTS,3))  # (B*V,4096,3)
+		pt_gt_bv=tf.reshape(pt_gt,(BATCH_SIZE*NUM_VIEW,POINTCLOUDSIZE,3))  # (B*V,4096,3)
 		x_bf=tf.reshape(x,(BATCH_SIZE*NUM_VIEW,OUTPUTPOINTS,3))  # (B*V,1024,3)
 
-		dists_forward,dists_backward=tf_nndistance.nn_distance(pt_gt,x)  # (B*V,4096) and (B*V,1024) 
+		dists_forward,dists_backward=tf_nndistance.nn_distance(pt_gt_bv,x_bf)  # (B*V,4096) and (B*V,1024) 
 		mindist=dists_forward
 		dist0=mindist[0,:]
 		dists_forward=tf.reduce_mean(dists_forward)
@@ -135,7 +140,7 @@ def build_mv_graph(resourceid):
 	return img_inp,x,pt_gt,loss,optimizer,batchno,batchnoinc,mindist,loss_nodecay,dists_forward,dists_backward,dist0
 
 def view_pool_lstm(view_features, name, outdim):
-  s = view_feature.shape
+  s = view_features.shape
   view_features = tf.reshape(view_features,(s[0],s[1],outdim))
   x = tf.unstack(view_features, axis=0)
   rnn_cell = tf.contrib.rnn.BasicLSTMCell(outdim)
