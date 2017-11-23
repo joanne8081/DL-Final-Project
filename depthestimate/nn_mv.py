@@ -23,6 +23,7 @@ from BatchFetcherPoke import *
 
 lastbatch=None
 lastconsumed=FETCH_BATCH_SIZE
+LR_DEFAULT=3e-5
 
 def fetch_batch():
 	global lastbatch,lastconsumed
@@ -35,7 +36,7 @@ def fetch_batch():
 def stop_fetcher():
 	fetchworker.shutdown()
 
-def build_mv_graph(resourceid):
+def build_mv_graph(resourceid,lr):
 	"""
 	Build multi-view graph 
 	"""
@@ -183,10 +184,10 @@ def load_weights(sess, weightsfile):
 	print('Weights are loaded sucessfully ^.<')
 	return 0
 
-def mvfinetune(resourceid,keyname,weightsfile,batch_number):
+def mvfinetune(resourceid,keyname,weightsfile,batch_number,lr):
 	if not os.path.exists(dumpdir):
 		os.system("mkdir -p %s"%dumpdir)
-	img_inp,x,pt_gt,loss,optimizer,batchno,batchnoinc,mindist,loss_nodecay,dists_forward,dists_backward,dist0=build_mv_graph(resourceid)
+	img_inp,x,pt_gt,loss,optimizer,batchno,batchnoinc,mindist,loss_nodecay,dists_forward,dists_backward,dist0=build_mv_graph(resourceid,lr)
 	config=tf.ConfigProto()
 	#config.gpu_options.per_process_gpu_memory_fraction = 0.90
 	config.gpu_options.allow_growth=True
@@ -247,10 +248,10 @@ def mvfinetune(resourceid,keyname,weightsfile,batch_number):
 			print bno,'t',trainloss_accs[0]/trainloss_acc0,trainloss_accs[1]/trainloss_acc0,trainloss_accs[2]/trainloss_acc0,'v',validloss_accs[0]/validloss_acc0,validloss_accs[1]/validloss_acc0,validloss_accs[2]/validloss_acc0,total_loss-showloss,t1-t0,t2-t1,time.time()-t0,fetchworker.queue.qsize()
 		saver.save(sess,'%s/'%dumpdir+keyname+".ckpt") 
 
-def main(resourceid,keyname):
+def main(resourceid,keyname,lr):
 	if not os.path.exists(dumpdir):
 		os.system("mkdir -p %s"%dumpdir)
-	img_inp,x,pt_gt,loss,optimizer,batchno,batchnoinc,mindist,loss_nodecay,dists_forward,dists_backward,dist0=build_mv_graph(resourceid)
+	img_inp,x,pt_gt,loss,optimizer,batchno,batchnoinc,mindist,loss_nodecay,dists_forward,dists_backward,dist0=build_mv_graph(resourceid,lr)
 	config=tf.ConfigProto()
 	config.gpu_options.allow_growth=True
 	config.allow_soft_placement=True
@@ -371,7 +372,7 @@ def exportpkl(resourceid,keyname,modeldir):
 
 if __name__=='__main__':
 	resourceid = 0
-	datadir,dumpdir,cmd,valnum="data","dump","predict",3
+	datadir,dumpdir,cmd,valnum,lr="data","dump","predict",3,LR_DEFAULT
 	for pt in sys.argv[1:]:
 		if pt[:5]=="data=":
 			datadir = pt[5:]
@@ -385,6 +386,8 @@ if __name__=='__main__':
 			modeldir = pt[6:]
 		elif pt[:4]=="bno=":
 			batchno = int(pt[4:])
+		elif pt[:3]=="lr=":
+			lr = np.float32(pt[3:])
 		else:
 			cmd = pt
 	if datadir[-1]=='/':
@@ -407,7 +410,7 @@ if __name__=='__main__':
 		elif cmd=="exportpkl":
 			exportpkl(resourceid,keyname,modeldir)
 		elif cmd=="mvfinetune":
-			mvfinetune(resourceid,keyname,weightsfile,batchno)
+			mvfinetune(resourceid,keyname,weightsfile,batchno,lr)
 		else:
 			assert False,"format wrong"
 	finally:
