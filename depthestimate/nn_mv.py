@@ -154,7 +154,7 @@ def build_mv_graph(resourceid,lr):
 		loss_nodecay=(dists_forward+dists_backward/2.0)*10000
 		loss=loss_nodecay+tf.add_n(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))*0.1
 		batchno = tf.Variable(0, dtype=tf.int32)
-		optimizer = tf.train.AdamOptimizer(3e-5*BATCH_SIZE/FETCH_BATCH_SIZE).minimize(loss,global_step=batchno)
+		optimizer = tf.train.AdamOptimizer(lr*BATCH_SIZE/FETCH_BATCH_SIZE).minimize(loss,global_step=batchno)
 		batchnoinc=batchno.assign(batchno+1)
 	return img_inp,x,pt_gt,loss,optimizer,batchno,batchnoinc,mindist,loss_nodecay,dists_forward,dists_backward,dist0
 
@@ -308,7 +308,7 @@ def main(resourceid,keyname,lr):
 		saver.save(sess,'%s/'%dumpdir+keyname+".ckpt") 
 
 def dumppredictions(resourceid,keyname,valnum):
-	img_inp,x,pt_gt,loss,optimizer,batchno,batchnoinc,mindist,loss_nodecay,dists_forward,dists_backward,dist0=build_mv_graph(resourceid)
+	img_inp,x,pt_gt,loss,optimizer,batchno,batchnoinc,mindist,loss_nodecay,dists_forward,dists_backward,dist0=build_mv_graph(resourceid,LR_DEFAULT)
 	config=tf.ConfigProto()
 	config.gpu_options.allow_growth=True
 	config.allow_soft_placement=True
@@ -336,7 +336,7 @@ def dumppredictions(resourceid,keyname,valnum):
 	fout.close()
 
 def testpredictions(resourceid,keyname,valnum,modeldir):
-	img_inp,x,pt_gt,loss,optimizer,batchno,batchnoinc,mindist,loss_nodecay,dists_forward,dists_backward,dist0=build_mv_graph(resourceid)
+	img_inp,x,pt_gt,loss,optimizer,batchno,batchnoinc,mindist,loss_nodecay,dists_forward,dists_backward,dist0=build_mv_graph(resourceid,LR_DEFAULT)
 	config=tf.ConfigProto()
 	config.gpu_options.allow_growth=True
 	config.allow_soft_placement=True
@@ -357,7 +357,7 @@ def testpredictions(resourceid,keyname,valnum,modeldir):
 			print i,'time',time.time()-t0,cnt
 
 def exportpkl(resourceid,keyname,modeldir):
-	img_inp,x,pt_gt,loss,optimizer,batchno,batchnoinc,mindist,loss_nodecay,dists_forward,dists_backward,dist0=build_mv_graph(resourceid)
+	img_inp,x,pt_gt,loss,optimizer,batchno,batchnoinc,mindist,loss_nodecay,dists_forward,dists_backward,dist0=build_mv_graph(resourceid,LR_DEFAULT)
 	config=tf.ConfigProto()
 	config.gpu_options.allow_growth=True
 	config.allow_soft_placement=True
@@ -402,7 +402,7 @@ if __name__=='__main__':
 	keyname=os.path.basename(__file__).rstrip('.py')
 	try:
 		if cmd=="train":
-			main(resourceid,keyname)
+			main(resourceid,keyname,lr)
 		elif cmd=="predict":
 			dumppredictions(resourceid,keyname,valnum)
 		elif cmd=="test":

@@ -22,6 +22,7 @@ from BatchFetcherPoke2 import *
 
 lastbatch=None
 lastconsumed=FETCH_BATCH_SIZE
+LR_DEFAULT=3e-5
 
 def fetch_batch():
 	global lastbatch,lastconsumed
@@ -34,7 +35,7 @@ def fetch_batch():
 def stop_fetcher():
 	fetchworker.shutdown()
 
-def build_mv_graph(resourceid):
+def build_mv_graph(resourceid,lr):
 	"""
 	Build multi-view graph 
 	"""
@@ -135,7 +136,7 @@ def build_mv_graph(resourceid):
 		loss_nodecay=(dists_forward+dists_backward/2.0)*10000
 		loss=loss_nodecay+tf.add_n(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))*0.1
 		batchno = tf.Variable(0, dtype=tf.int32)
-		optimizer = tf.train.AdamOptimizer(3e-5*BATCH_SIZE/FETCH_BATCH_SIZE).minimize(loss,global_step=batchno)
+		optimizer = tf.train.AdamOptimizer(lr*BATCH_SIZE/FETCH_BATCH_SIZE).minimize(loss,global_step=batchno)
 		batchnoinc=batchno.assign(batchno+1)
 	return img_inp,x,pt_gt,loss,optimizer,batchno,batchnoinc,mindist,loss_nodecay,dists_forward,dists_backward,dist0
 
@@ -171,10 +172,10 @@ def load_weights(sess, weightsfile):
 	print('Weights are loaded sucessfully ^.<')
 	return 0
 
-def mvfinetune(resourceid,keyname,weightsfile,batch_number):
+def mvfinetune(resourceid,keyname,weightsfile,batch_number,lr):
 	if not os.path.exists(dumpdir):
 		os.system("mkdir -p %s"%dumpdir)
-	img_inp,x,pt_gt,loss,optimizer,batchno,batchnoinc,mindist,loss_nodecay,dists_forward,dists_backward,dist0=build_mv_graph(resourceid)
+	img_inp,x,pt_gt,loss,optimizer,batchno,batchnoinc,mindist,loss_nodecay,dists_forward,dists_backward,dist0=build_mv_graph(resourceid,lr)
 	config=tf.ConfigProto()
 	#config.gpu_options.per_process_gpu_memory_fraction = 0.90
 	config.gpu_options.allow_growth=True
@@ -235,10 +236,10 @@ def mvfinetune(resourceid,keyname,weightsfile,batch_number):
 			print bno,'t',trainloss_accs[0]/trainloss_acc0,trainloss_accs[1]/trainloss_acc0,trainloss_accs[2]/trainloss_acc0,'v',validloss_accs[0]/validloss_acc0,validloss_accs[1]/validloss_acc0,validloss_accs[2]/validloss_acc0,total_loss-showloss,t1-t0,t2-t1,time.time()-t0,fetchworker.queue.qsize()
 		saver.save(sess,'%s/'%dumpdir+keyname+".ckpt") 
 
-def main(resourceid,keyname):
+def main(resourceid,keyname,lr):
 	if not os.path.exists(dumpdir):
 		os.system("mkdir -p %s"%dumpdir)
-	img_inp,x,pt_gt,loss,optimizer,batchno,batchnoinc,mindist,loss_nodecay,dists_forward,dists_backward,dist0=build_mv_graph(resourceid)
+	img_inp,x,pt_gt,loss,optimizer,batchno,batchnoinc,mindist,loss_nodecay,dists_forward,dists_backward,dist0=build_mv_graph(resourceid,lr)
 	config=tf.ConfigProto()
 	config.gpu_options.allow_growth=True
 	config.allow_soft_placement=True
@@ -295,7 +296,7 @@ def main(resourceid,keyname):
 		saver.save(sess,'%s/'%dumpdir+keyname+".ckpt") 
 
 def dumppredictions(resourceid,keyname,valnum):
-	img_inp,x,pt_gt,loss,optimizer,batchno,batchnoinc,mindist,loss_nodecay,dists_forward,dists_backward,dist0=build_mv_graph(resourceid)
+	img_inp,x,pt_gt,loss,optimizer,batchno,batchnoinc,mindist,loss_nodecay,dists_forward,dists_backward,dist0=build_mv_graph(resourceid,LR_DEFAULT)
 	config=tf.ConfigProto()
 	config.gpu_options.allow_growth=True
 	config.allow_soft_placement=True
@@ -323,7 +324,7 @@ def dumppredictions(resourceid,keyname,valnum):
 	fout.close()
 
 def testpredictions(resourceid,keyname,valnum,modeldir):
-	img_inp,x,pt_gt,loss,optimizer,batchno,batchnoinc,mindist,loss_nodecay,dists_forward,dists_backward,dist0=build_mv_graph(resourceid)
+	img_inp,x,pt_gt,loss,optimizer,batchno,batchnoinc,mindist,loss_nodecay,dists_forward,dists_backward,dist0=build_mv_graph(resourceid,LR_DEFAULT)
 	config=tf.ConfigProto()
 	config.gpu_options.allow_growth=True
 	config.allow_soft_placement=True
@@ -344,7 +345,7 @@ def testpredictions(resourceid,keyname,valnum,modeldir):
 			print i,'time',time.time()-t0,cnt
 
 def exportpkl(resourceid,keyname,modeldir):
-	img_inp,x,pt_gt,loss,optimizer,batchno,batchnoinc,mindist,loss_nodecay,dists_forward,dists_backward,dist0=build_mv_graph(resourceid)
+	img_inp,x,pt_gt,loss,optimizer,batchno,batchnoinc,mindist,loss_nodecay,dists_forward,dists_backward,dist0=build_mv_graph(resourceid,LR_DEFAULT)
 	config=tf.ConfigProto()
 	config.gpu_options.allow_growth=True
 	config.allow_soft_placement=True
@@ -373,6 +374,8 @@ if __name__=='__main__':
 			modeldir = pt[6:]
 		elif pt[:4]=="bno=":
 			batchno = int(pt[4:])
+		elif pt[:3]=="lr=":
+			lr = np.float32(pt[3:])
 		else:
 			cmd = pt
 	if datadir[-1]=='/':
@@ -387,7 +390,7 @@ if __name__=='__main__':
 	keyname=os.path.basename(__file__).rstrip('.py')
 	try:
 		if cmd=="train":
-			main(resourceid,keyname)
+			main(resourceid,keyname,lr)
 		elif cmd=="predict":
 			dumppredictions(resourceid,keyname,valnum)
 		elif cmd=="test":
@@ -395,7 +398,7 @@ if __name__=='__main__':
 		elif cmd=="exportpkl":
 			exportpkl(resourceid,keyname,modeldir)
 		elif cmd=="mvfinetune":
-			mvfinetune(resourceid,keyname,weightsfile,batchno)
+			mvfinetune(resourceid,keyname,weightsfile,batchno,lr)
 		else:
 			assert False,"format wrong"
 	finally:
