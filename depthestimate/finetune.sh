@@ -19,7 +19,7 @@ learning_rate=`echo "$value*((0.99)^$number)" | bc -l`
 xvfb-run -a python nn.py model=$DUMPFILE dump=$PKLFILE lr=$learning_rate exportpkl >> garbage.txt
 xvfb-run -a python nn.py data=$DATAFILE dump=$DUMPFILE pkl=$PKLFILE2 bno=$5 lr=$learning_rate finetune >> garbage.txt
 tarn=$((number%5))
-if [ "$tarn" -eq 0 ]; then
+if [ "$tarn" -eq 0 ] || [ $number -eq $6 ]; then
 	TARFILE="${PSFILE}_ep${number}.tar.gz"
 	PSFILE2="${PSFILE}_cp"
 	mkdir $PSFILE2
