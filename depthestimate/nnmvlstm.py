@@ -18,7 +18,7 @@ import cPickle as pickle
 
 #from BatchFetcher2 import *
 #from BatchFetcherPoke import *
-from BatchFetchPoke2 import *
+from BatchFetcherPoke2 import *
 
 lastbatch=None
 lastconsumed=FETCH_BATCH_SIZE
@@ -80,11 +80,19 @@ def build_mv_graph(resourceid,lr):
 		x = view_pool_lstm(x, 'enc_lstm', 6144)  # (V,B,6144)   6144=3*4*512
 		x=tf.transpose(x, perm=[1,0,2])  # (B,V,6144)
 
-		x_additional=tf.reshape(x,(BATCH_SIZE*NUM_VIEW,6144))  # (B*V,6144)
-		x_additional=tflearn.layers.core.fully_connected(x_additional,2048,scope='FullyConnected',activation='relu',weight_decay=1e-3,regularizer='L2')  # (B*V,2048)
-		x_additional=tflearn.layers.core.fully_connected(x_additional,1024,scope='FullyConnected_1',activation='relu',weight_decay=1e-3,regularizer='L2')  # (B*V,1024)
-		x_additional=tflearn.layers.core.fully_connected(x_additional,256*3,scope='FullyConnected_2',activation='linear',weight_decay=1e-3,regularizer='L2')  # (B*V,768)
+                x_additional=tf.reshape(x,(BATCH_SIZE*NUM_VIEW,50))
+                x_additional=tflearn.layers.core.fully_connected(x_additional,987,scope='FullyConnected_Add1',activation='relu',weight_decay=1e-3,regularizer='L2')
+
+		#x_additional=tf.reshape(x,(BATCH_SIZE*NUM_VIEW,6144))  # (B*V,6144)
+		#x_additional=tflearn.layers.core.fully_connected(x_additional,2048,scope='FullyConnected',activation='relu',weight_decay=1e-3,regularizer='L2')  # (B*V,2048)
+		#x_additional=tflearn.layers.core.fully_connected(x_additional,1024,scope='FullyConnected_1',activation='relu',weight_decay=1e-3,regularizer='L2')  # (B*V,1024)
+		x_additional=tflearn.layers.core.fully_connected(x_additional,256*3,scope='FullyConnected_Add2',activation='linear',weight_decay=1e-3,regularizer='L2')  # (B*V,768)
 		x_additional=tf.reshape(x_additional,(BATCH_SIZE,NUM_VIEW,256,3))  # (B,V,256,3)
+
+                x=tf.reshape(x,(BATCH_SIZE*NUM_VIEW,50))
+                x=tflearn.layers.core.fully_connected(x,487,scope='FullyConnected_LSTM1',activation='relu',weight_decay=1e-3,regularizer='L2')
+                x=tflearn.layers.core.fully_connected(x,6144,scope='FullyConnected_LSTM2',activation='relu',weight_decay=1e-3,regularizer='L2')
+                x=tf.reshape(x,(BATCH_SIZE,NUM_VIEW,6144))
 
 		x=tf.reshape(x,(BATCH_SIZE*NUM_VIEW,3,4,512))  # (B*V,3,4,512)
 		x=tflearn.layers.conv.conv_2d_transpose(x,256,[5,5],[6,8],scope='Conv2DTranspose',strides=2,activation='linear',weight_decay=1e-5,regularizer='L2')  # (B*V,6,8,256)
@@ -154,10 +162,10 @@ def view_pool_lstm(view_features, name, outdim):
   rnn_cell.add_variable(name=name, shape = 50, dtype=tf.float32)
   vp, states = tf.contrib.rnn.static_rnn(rnn_cell, x, dtype=tf.float32)
   vp = tf.stack(vp, axis = 0)
-  vp = tf.reshape(vp, (s[0]*s[1],50))
-  vp = tflearn.layers.core.fully_connected(vp, 487, scope = 'Fully_Connected_LSTM1', activation = 'relu', weight_decay = 1e-3, regularizer = 'L2')
-  vp = tflearn.layers.core.fully_connected(vp, outdim, scope = 'Fully_Connected_LSTM2', activation = 'relu', weight_decay = 1e-3, regularizer = 'L2')
-  vp = tf.reshape(vp, (s[0],s[1],outdim))
+  #vp = tf.reshape(vp, (s[0]*s[1],50))
+  #vp = tflearn.layers.core.fully_connected(vp, 487, scope = 'Fully_Connected_LSTM1', activation = 'relu', weight_decay = 1e-3, regularizer = 'L2')
+  #vp = tflearn.layers.core.fully_connected(vp, outdim, scope = 'Fully_Connected_LSTM2', activation = 'relu', weight_decay = 1e-3, regularizer = 'L2')
+  #vp = tf.reshape(vp, (s[0],s[1],outdim))
   return vp
 
 def view_pool_nothing(view_features, name, outdim):
