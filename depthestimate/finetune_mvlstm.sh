@@ -24,7 +24,7 @@ if [ "$tarn" -eq 0 ]; then
 	PSFILE2="${PSFILE}_cp"
 	mkdir $PSFILE2
 	echo Do Test and Copy to $PSFILE2 and Tar to $TARFILE
-	xvfb-run -a python nn_mv.py data=$DATAFILE model=$DUMPFILE dump=$PSFILE num=$8 test >> garbage.txt
+	xvfb-run -a python nnmvlstm.py data=$DATAFILE model=$DUMPFILE dump=$PSFILE num=$8 test >> garbage.txt
 	testsize=`echo "$8 - 1" | bc`
 	echo $textsize
 	for n in `seq 0 $testsize`;
