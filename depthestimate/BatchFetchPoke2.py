@@ -14,7 +14,7 @@ import cPickle as pickle
 import show3d
 from PIL import Image
 
-NUM_VIEW = 5
+NUM_VIEW = 3
 TOTAL_NUM_VIEW = 30
 FETCH_BATCH_SIZE=30
 BATCH_SIZE=30
