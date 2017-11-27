@@ -77,7 +77,8 @@ def build_mv_graph(resourceid,lr):
 
 		x=tf.reshape(x,(BATCH_SIZE,NUM_VIEW,6144))  # (B,V,6144)
 		x=tf.transpose(x, perm=[1,0,2])  # (V,B,6144)
-		hs, c_v=view_pool_lstm2(x, 30, 'LSTM', 30) # output: 3*(B,50) and hidden state:(B,50)
+		N_h = 50
+		hs, c_v=view_pool_lstm2(x, 30, 'LSTM', N_h) # output: 3*(B,50) and hidden state:(B,50)
 		xx=tf.concat([hs[v] for v in range(NUM_VIEW)],axis=1)
 		xx=tf.concat([xx, c_v],axis=1) #(B,200)
 
@@ -94,7 +95,7 @@ def build_mv_graph(resourceid,lr):
 		x_additional=tflearn.layers.core.fully_connected(x_additional,3*256*3,scope='FullyConnected_Add2',activation='linear',weight_decay=1e-3,regularizer='L2')  # (B*V,768)
 		x_additional=tf.reshape(x_additional,(BATCH_SIZE,NUM_VIEW,256,3))  # (B,V,256,3)
 
-		x=tf.reshape(xx,(BATCH_SIZE,120))
+		x=tf.reshape(xx,(BATCH_SIZE,(NUM_VIEW+1)*N_h))
 		x=tflearn.layers.core.fully_connected(x,3*487,scope='FullyConnected_LSTM1',activation='relu',weight_decay=1e-3,regularizer='L2')
 		x=tflearn.layers.core.fully_connected(x,3*6144,scope='FullyConnected_LSTM2',activation='relu',weight_decay=1e-3,regularizer='L2')
 		x=tf.reshape(x,(BATCH_SIZE,NUM_VIEW,6144))
@@ -174,7 +175,7 @@ def view_pool_lstm(view_features, name, outdim):
 	#vp = tf.reshape(vp, (s[0],s[1],outdim))
 	return vp
 
-def view_pool_lstm2(view_features, n_batch, name, n_hidden=None):
+def view_pool_lstm2(view_features, n_batch, name, n_hidden=None, n_out=None):
 	cell = tf.contrib.rnn.BasicLSTMCell(n_hidden)
 	initial_state = cell.zero_state(n_batch, dtype=tf.float32)
 	state = initial_state
@@ -185,10 +186,10 @@ def view_pool_lstm2(view_features, n_batch, name, n_hidden=None):
 				tf.get_variable_scope().reuse_variables()
 			(cell_output, state) = cell(view_features[v,:,:], state)
 			outputs.append(cell_output)
-	#print(cell.scope_name)
-	#print(cell.state_size) #(c=n_hidden, h=n_hidden) where c is hidden state and h is output of LSTM
-	#print(cell.output_size)
-	#print(cell.variables)
+	print(cell.scope_name)
+	print(cell.state_size)
+	print(cell.output_size)
+	print(cell.variables)
 	return outputs, state[0]
 	'''
 def inference(x, n_batch, maxlen=None, n_hidden=None, n_out=None):
