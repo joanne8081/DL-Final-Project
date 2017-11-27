@@ -13,12 +13,12 @@ import socket
 import threading
 import Queue
 import sys
-import tf_nndistance_1 as tf_nndistance
+import tf_nndistance_2 as tf_nndistance
 import cPickle as pickle
 
 #from BatchFetcher2 import *
 #from BatchFetcherPoke import *
-from BatchFetcherPoke2 import *
+from BatchFetchPoke2 import *
 
 lastbatch=None
 lastconsumed=FETCH_BATCH_SIZE
@@ -91,7 +91,7 @@ def build_mv_graph(resourceid,lr):
 
 		x5=tf.reshape(x5,(BATCH_SIZE,NUM_VIEW,24576))  # (B,V,24576)
 		x5=tf.transpose(x5, perm=[1,0,2])  # (V,B,24576)
-		x5 = view_pool_lstm(x5, 'x5_lstm', 24576)  # (B*V,24576)    24576=6*8*512
+		x5 = view_pool_nothing(x5, 'x5_lstm', 24576)  # (B*V,24576)    24576=6*8*512
 		# print(x5.shape)
 		x5=tf.transpose(x5, perm=[1,0,2])  # (B,V,24576)
 		x5=tf.reshape(x5, (BATCH_SIZE*NUM_VIEW,6,8,512))  # (B*V,6,8,512)
@@ -103,7 +103,7 @@ def build_mv_graph(resourceid,lr):
 
 		x4=tf.reshape(x4,(BATCH_SIZE,NUM_VIEW,49152))  # (B,V,49152)
 		x4=tf.transpose(x4, perm=[1,0,2])  # (B,V,49152)
-		x4 = view_pool_lstm(x4, 'x4_lstm', 49152)  # (B*V,49152)    49152=12*16*256
+		x4 = view_pool_nothing(x4, 'x4_lstm', 49152)  # (B*V,49152)    49152=12*16*256
 		# print(x4.shape)
 		x4=tf.transpose(x4, perm=[1,0,2])  # (B,V,49152)
 		x4=tf.reshape(x4, (BATCH_SIZE*NUM_VIEW,12,16,256))  # (B,V,12,16,256)
@@ -115,7 +115,7 @@ def build_mv_graph(resourceid,lr):
 
 		x3=tf.reshape(x3,(BATCH_SIZE,NUM_VIEW,98304))  # (B,V,98304)
 		x3=tf.transpose(x3, perm=[1,0,2])  # (V,B,98304)
-		x3 = view_pool_lstm(x3, 'x3_lstm', 98304)  # (B*V,98304)    98304=24*32*128
+		x3 = view_pool_nothing(x3, 'x3_lstm', 98304)  # (B*V,98304)    98304=24*32*128
 		# print(x3.shape)
 		x3=tf.transpose(x3, perm=[1,0,2])  # (B,V,98304)
 		x3=tf.reshape(x3, (BATCH_SIZE*NUM_VIEW,24,32,128))  # (B,V,24,32,128)
@@ -127,11 +127,12 @@ def build_mv_graph(resourceid,lr):
 		x=tflearn.layers.conv.conv_2d(x,3,(3,3),scope='Conv2D_26',strides=1,activation='linear',weight_decay=1e-5,regularizer='L2')  # (B*V,24,32,3)
 		x=tf.reshape(x,(BATCH_SIZE,NUM_VIEW,32*24,3))  # (B,V,768,3)
 		x=tf.concat([x_additional,x],axis=2)  # (B,V,1024,3)
-		x=tf.reshape(x,(BATCH_SIZE,NUM_VIEW,OUTPUTPOINTS,3))  # do we really need this line?
+		#x=tf.reshape(x,(BATCH_SIZE,NUM_VIEW,OUTPUTPOINTS,3))  # do we really need this line?
 
 		# figure out the input size for nndistance
 		pt_gt_bv=tf.reshape(pt_gt,(BATCH_SIZE*NUM_VIEW,POINTCLOUDSIZE,3))  # (B*V,4096,3)
 		x_bf=tf.reshape(x,(BATCH_SIZE*NUM_VIEW,OUTPUTPOINTS,3))  # (B*V,1024,3)
+                x = x[:,0,:,:]
 
 		dists_forward,dists_backward=tf_nndistance.nn_distance(pt_gt_bv,x_bf)  # (B*V,4096) and (B*V,1024) 
 		mindist=dists_forward
@@ -149,10 +150,18 @@ def view_pool_lstm(view_features, name, outdim):
   s = view_features.shape
   view_features = tf.reshape(view_features,(s[0],s[1],outdim))
   x = tf.unstack(view_features, axis=0)
-  rnn_cell = tf.contrib.rnn.BasicLSTMCell(outdim)
-  rnn_cell.add_variable(name=name, shape=outdim)
+  rnn_cell = tf.contrib.rnn.LSTMCell(50)
+  rnn_cell.add_variable(name=name, shape = 50, dtype=tf.float32)
   vp, states = tf.contrib.rnn.static_rnn(rnn_cell, x, dtype=tf.float32)
-  return tf.stack(vp, axis=0)
+  vp = tf.stack(vp, axis = 0)
+  vp = tf.reshape(vp, (s[0]*s[1],50))
+  vp = tflearn.layers.core.fully_connected(vp, 487, scope = 'Fully_Connected_LSTM1', activation = 'relu', weight_decay = 1e-3, regularizer = 'L2')
+  vp = tflearn.layers.core.fully_connected(vp, outdim, scope = 'Fully_Connected_LSTM2', activation = 'relu', weight_decay = 1e-3, regularizer = 'L2')
+  vp = tf.reshape(vp, (s[0],s[1],outdim))
+  return vp
+
+def view_pool_nothing(view_features, name, outdim):
+  return view_features
 
 def load_weights(sess, weightsfile):
 	loaddict={}
