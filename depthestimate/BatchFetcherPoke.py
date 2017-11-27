@@ -60,7 +60,8 @@ class BatchFetcher(threading.Thread):
 		validating = np.random.randint(16,size=FETCH_BATCH_SIZE)==0
 		for i in range(FETCH_BATCH_SIZE):
 			pokenum = datalist[bno]
-			viewnum = random.sample(range(TOTAL_NUM_VIEW), NUM_VIEW)
+			firstnum = np.random.randint(TOTAL_NUM_VIEW)
+			viewnum = [(firstnum+i*(TOTAL_NUM_VIEW/NUM_VIEW))%(TOTAL_NUM_VIEW) for i in range(NUM_VIEW)]
 			for j in range(len(viewnum)):	
 				path2png = os.path.join(self.datadir, pokenum, pokenum+'_{}.png'.format(viewnum[j]))
 				path2txt = os.path.join(self.datadir, pokenum, pokenum+'.txt')
