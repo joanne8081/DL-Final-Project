@@ -68,8 +68,7 @@ class BatchFetcher(threading.Thread):
 				path2txt = os.path.join(self.datadir, pokenum, pokenum+'.txt')
 				single_data, single_ptcloud=self.fetch_single(path2png, path2txt)
 				data[i,j,:,:,:] = single_data
-				if j==0:
-					ptcloud[i,j,:,:] = single_ptcloud
+				ptcloud[i,j,:,:] = single_ptcloud
  
 		return (data,ptcloud,validating)
 
