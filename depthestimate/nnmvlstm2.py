@@ -77,21 +77,26 @@ def build_mv_graph(resourceid,lr):
 
 		x=tf.reshape(x,(BATCH_SIZE,NUM_VIEW,6144))  # (B,V,6144)
 		x=tf.transpose(x, perm=[1,0,2])  # (V,B,6144)
-		xx = view_pool_lstm2(x, 30, 'LSTM', 10, 10)
-		x = view_pool_lstm(x, 'enc_lstm', 6144)  # (V,B,6144)   6144=3*4*512
-		x=tf.transpose(x, perm=[1,0,2])  # (B,V,6144)
-		x_additional=tf.reshape(x,(BATCH_SIZE*NUM_VIEW,50))
-		x_additional=tflearn.layers.core.fully_connected(x_additional,987,scope='FullyConnected_Add1',activation='relu',weight_decay=1e-3,regularizer='L2')
+		hs, c_v=view_pool_lstm2(x, 30, 'LSTM', 30) # output: 3*(B,50) and hidden state:(B,50)
+		xx=tf.concat([hs[v] for v in range(NUM_VIEW)],axis=1)
+		xx=tf.concat([xx, c_v],axis=1) #(B,200)
+
+		#print(xx.shape)
+
+		#x = view_pool_lstm(x, 'enc_lstm', 6144)  # (V,B,6144)   6144=3*4*512
+		#x=tf.transpose(x, perm=[1,0,2])  # (B,V,6144)
+		#x_additional=tf.reshape(x,(BATCH_SIZE,200))
+		x_additional=tflearn.layers.core.fully_connected(xx,987,scope='FullyConnected_Add1',activation='relu',weight_decay=1e-3,regularizer='L2')
 
 		#x_additional=tf.reshape(x,(BATCH_SIZE*NUM_VIEW,6144))  # (B*V,6144)
 		#x_additional=tflearn.layers.core.fully_connected(x_additional,2048,scope='FullyConnected',activation='relu',weight_decay=1e-3,regularizer='L2')  # (B*V,2048)
 		#x_additional=tflearn.layers.core.fully_connected(x_additional,1024,scope='FullyConnected_1',activation='relu',weight_decay=1e-3,regularizer='L2')  # (B*V,1024)
-		x_additional=tflearn.layers.core.fully_connected(x_additional,256*3,scope='FullyConnected_Add2',activation='linear',weight_decay=1e-3,regularizer='L2')  # (B*V,768)
+		x_additional=tflearn.layers.core.fully_connected(x_additional,3*256*3,scope='FullyConnected_Add2',activation='linear',weight_decay=1e-3,regularizer='L2')  # (B*V,768)
 		x_additional=tf.reshape(x_additional,(BATCH_SIZE,NUM_VIEW,256,3))  # (B,V,256,3)
 
-		x=tf.reshape(x,(BATCH_SIZE*NUM_VIEW,50))
-		x=tflearn.layers.core.fully_connected(x,487,scope='FullyConnected_LSTM1',activation='relu',weight_decay=1e-3,regularizer='L2')
-		x=tflearn.layers.core.fully_connected(x,6144,scope='FullyConnected_LSTM2',activation='relu',weight_decay=1e-3,regularizer='L2')
+		x=tf.reshape(xx,(BATCH_SIZE,120))
+		x=tflearn.layers.core.fully_connected(x,3*487,scope='FullyConnected_LSTM1',activation='relu',weight_decay=1e-3,regularizer='L2')
+		x=tflearn.layers.core.fully_connected(x,3*6144,scope='FullyConnected_LSTM2',activation='relu',weight_decay=1e-3,regularizer='L2')
 		x=tf.reshape(x,(BATCH_SIZE,NUM_VIEW,6144))
 
 		x=tf.reshape(x,(BATCH_SIZE*NUM_VIEW,3,4,512))  # (B*V,3,4,512)
@@ -169,7 +174,7 @@ def view_pool_lstm(view_features, name, outdim):
 	#vp = tf.reshape(vp, (s[0],s[1],outdim))
 	return vp
 
-def view_pool_lstm2(view_features, n_batch, name, n_hidden=None, n_out=None):
+def view_pool_lstm2(view_features, n_batch, name, n_hidden=None):
 	cell = tf.contrib.rnn.BasicLSTMCell(n_hidden)
 	initial_state = cell.zero_state(n_batch, dtype=tf.float32)
 	state = initial_state
@@ -180,9 +185,11 @@ def view_pool_lstm2(view_features, n_batch, name, n_hidden=None, n_out=None):
 				tf.get_variable_scope().reuse_variables()
 			(cell_output, state) = cell(view_features[v,:,:], state)
 			outputs.append(cell_output)
-	print(state.shape)
-	print(cell_output.shape)
-	return view_features
+	#print(cell.scope_name)
+	#print(cell.state_size) #(c=n_hidden, h=n_hidden) where c is hidden state and h is output of LSTM
+	#print(cell.output_size)
+	#print(cell.variables)
+	return outputs, state[0]
 	'''
 def inference(x, n_batch, maxlen=None, n_hidden=None, n_out=None):
     def weight_variable(shape):
