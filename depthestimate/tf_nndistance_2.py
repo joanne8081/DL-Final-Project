@@ -1,6 +1,6 @@
 import tensorflow as tf
 from tensorflow.python.framework import ops
-from BatchFetcherPoke import *
+from BatchFetchPoke2 import *
 #nn_distance_module=tf.load_op_library('./tf_nndistance_so.so')
 
 def nn_distance(xyz1,xyz2):
@@ -33,8 +33,8 @@ if __name__=='__main__':
 	random.seed(100)
 	np.random.seed(100)
 	with tf.Session('') as sess:
-		xyz1=np.random.randn(BATCH_SIZE,POINTCLOUDSIZE,3).astype('float32')
-		xyz2=np.random.randn(BATCH_SIZE,OUTPUTPOINTS,3).astype('float32')
+		xyz1=np.random.randn(BATCH_SIZE*NUM_VIEW,POINTCLOUDSIZE,3).astype('float32')
+		xyz2=np.random.randn(BATCH_SIZE*NUM_VIEW,OUTPUTPOINTS,3).astype('float32')
 		#with tf.device('/gpu:0'):
 		if True:
 			inp1=tf.Variable(xyz1)
