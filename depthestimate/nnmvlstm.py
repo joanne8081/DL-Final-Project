@@ -140,7 +140,7 @@ def build_mv_graph(resourceid,lr):
 		# figure out the input size for nndistance
 		pt_gt_bv=tf.reshape(pt_gt,(BATCH_SIZE*NUM_VIEW,POINTCLOUDSIZE,3))  # (B*V,4096,3)
 		x_bf=tf.reshape(x,(BATCH_SIZE*NUM_VIEW,OUTPUTPOINTS,3))  # (B*V,1024,3)
-                x = x[:,0,:,:]
+		x = x[:,0,:,:]
 
 		dists_forward,dists_backward=tf_nndistance.nn_distance(pt_gt_bv,x_bf)  # (B*V,4096) and (B*V,1024) 
 		mindist=dists_forward
