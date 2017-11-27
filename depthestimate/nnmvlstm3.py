@@ -19,6 +19,7 @@ import cPickle as pickle
 #from BatchFetcher2 import *
 #from BatchFetcherPoke import *
 from BatchFetcherPoke2 import *
+from BatchFetcher3 import * 
 
 lastbatch=None
 lastconsumed=FETCH_BATCH_SIZE
@@ -32,8 +33,17 @@ def fetch_batch():
 	ret=[i[lastconsumed:lastconsumed+BATCH_SIZE] for i in lastbatch]
 	lastconsumed+=BATCH_SIZE
 	return ret
+def fetch_batchTest():
+	global lastbatch,lastconsumed
+	if lastbatch is None or lastconsumed+BATCH_SIZE>FETCH_BATCH_SIZE:
+		lastbatch=fetchworkerTest.fetch()
+		lastconsumed=0
+	ret=[i[lastconsumed:lastconsumed+BATCH_SIZE] for i in lastbatch]
+	lastconsumed+=BATCH_SIZE
+	return ret
 def stop_fetcher():
 	fetchworker.shutdown()
+	fetchworkerTest.shutdown()
 
 def build_mv_graph(resourceid,lr):
 	"""
@@ -407,12 +417,12 @@ def testpredictions(resourceid,keyname,valnum,modeldir):
 	with tf.Session(config=config) as sess:
 		sess.run(tf.global_variables_initializer())
 		saver.restore(sess,"%s/%s.ckpt"%(modeldir,keyname))
-		fetchworker.bno=0
-		fetchworker.start()
+		fetchworkerTest.bno=0
+		fetchworkerTest.start()
 		cnt=0
 		for i in xrange(0,valnum):
 			t0=time.time()
-			data,ptcloud,validating=fetch_batch()
+			data,ptcloud,validating=fetch_batchTest()
 			pred=sess.run(x,feed_dict={img_inp:data})
 			for j in range(0, BATCH_SIZE):
 				outfile="%s/pts_"%dumpdir+str(i)+'_'+str(j)+'.txt'
@@ -460,6 +470,7 @@ if __name__=='__main__':
 	#assert os.path.exists(datadir),"data dir not exists"
 	os.system("mkdir -p %s"%dumpdir)
 	fetchworker=BatchFetcher(datadir)
+	fetchworkerTest=BatchFetcher3(datadir)
 	print "datadir=%s dumpdir=%s num=%d cmd=%s started"%(datadir,dumpdir,valnum,cmd)
 	
 	keyname=os.path.basename(__file__).rstrip('.py')
