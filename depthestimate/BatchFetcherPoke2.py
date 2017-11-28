@@ -61,7 +61,7 @@ class BatchFetcher(threading.Thread):
 		for i in range(FETCH_BATCH_SIZE):
 			pokenum = datalist[bno]
 			firstnum = np.random.randint(TOTAL_NUM_VIEW)
-			viewnum = [(firstnum+i*(TOTAL_NUM_VIEW/NUM_VIEW))%(TOTAL_NUM_VIEW) for i in range(NUM_VIEW)]
+			viewnum = [(firstnum+k*(TOTAL_NUM_VIEW/NUM_VIEW))%(TOTAL_NUM_VIEW) for k in range(NUM_VIEW)]
 			#viewnum = random.sample(range(TOTAL_NUM_VIEW), NUM_VIEW)
 			for j in range(len(viewnum)):	
 				path2png = os.path.join(self.datadir, pokenum, pokenum+'_{}.png'.format(viewnum[j]))

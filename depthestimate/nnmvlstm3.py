@@ -18,8 +18,7 @@ import cPickle as pickle
 
 #from BatchFetcher2 import *
 #from BatchFetcherPoke import *
-from BatchFetcherPoke2 import *
-from BatchFetcher3 import * 
+from BatchFetcherPoke3 import *
 
 lastbatch=None
 lastconsumed=FETCH_BATCH_SIZE
@@ -33,17 +32,8 @@ def fetch_batch():
 	ret=[i[lastconsumed:lastconsumed+BATCH_SIZE] for i in lastbatch]
 	lastconsumed+=BATCH_SIZE
 	return ret
-def fetch_batchTest():
-	global lastbatch,lastconsumed
-	if lastbatch is None or lastconsumed+BATCH_SIZE>FETCH_BATCH_SIZE:
-		lastbatch=fetchworkerTest.fetch()
-		lastconsumed=0
-	ret=[i[lastconsumed:lastconsumed+BATCH_SIZE] for i in lastbatch]
-	lastconsumed+=BATCH_SIZE
-	return ret
 def stop_fetcher():
 	fetchworker.shutdown()
-	fetchworkerTest.shutdown()
 
 def build_mv_graph(resourceid,lr):
 	"""
@@ -52,7 +42,7 @@ def build_mv_graph(resourceid,lr):
 	with tf.device('/gpu:%d'%resourceid):
 		tflearn.init_graph(seed=1029,num_cores=2,gpu_memory_fraction=0.9,soft_placement=True)
 		img_inp=tf.placeholder(tf.float32,shape=(BATCH_SIZE,NUM_VIEW,HEIGHT,WIDTH,4),name='img_inp')  # (B,V,192,256,4)
-		pt_gt=tf.placeholder(tf.float32,shape=(BATCH_SIZE,NUM_VIEW,POINTCLOUDSIZE,3),name='pt_gt')  # (B,V,P,3)     P=POINTCLOUDSIZE=4096
+		pt_gt=tf.placeholder(tf.float32,shape=(BATCH_SIZE,POINTCLOUDSIZE,3),name='pt_gt')  # (B,V,P,3) # P=POINTCLOUDSIZE=2600
 
 		x=tf.reshape(img_inp, (BATCH_SIZE*NUM_VIEW,HEIGHT,WIDTH,4))  # (B*V,192,256,4)
 		x=tflearn.layers.conv.conv_2d(x,16,(3,3),scope='Conv2D',strides=1,activation='relu',weight_decay=1e-5,regularizer='L2')  # (B*V,192,256,16)
@@ -81,84 +71,96 @@ def build_mv_graph(resourceid,lr):
 		x=tflearn.layers.conv.conv_2d(x,512,(3,3),scope='Conv2D_15',strides=1,activation='relu',weight_decay=1e-5,regularizer='L2')
 		x=tflearn.layers.conv.conv_2d(x,512,(3,3),scope='Conv2D_16',strides=1,activation='relu',weight_decay=1e-5,regularizer='L2')
 		x=tflearn.layers.conv.conv_2d(x,512,(3,3),scope='Conv2D_17',strides=1,activation='relu',weight_decay=1e-5,regularizer='L2')
-		x5=x
+		x5=x # (B,V,6,8,512)
 		x=tflearn.layers.conv.conv_2d(x,512,(5,5),scope='Conv2D_18',strides=2,activation='relu',weight_decay=1e-5,regularizer='L2')  # (B*V,3,4,512)
 		# end of encoder, one x vector for one view image
 
+		# start LSTM
 		x=tf.reshape(x,(BATCH_SIZE,NUM_VIEW,6144))  # (B,V,6144)
 		x=tf.transpose(x, perm=[1,0,2])  # (V,B,6144)
 		N_h = 50
 		hs, c_v=view_pool_lstm2(x, 30, 'LSTM', N_h) # output: 3*(B,50) and hidden state:(B,50)
 		xx=tf.concat([hs[v] for v in range(NUM_VIEW)],axis=1)
 		xx=tf.concat([xx, c_v],axis=1) #(B,200)
+		# End of LSTM
 
 		#print(xx.shape)
 
 		#x = view_pool_lstm(x, 'enc_lstm', 6144)  # (V,B,6144)   6144=3*4*512
 		#x=tf.transpose(x, perm=[1,0,2])  # (B,V,6144)
 		#x_additional=tf.reshape(x,(BATCH_SIZE,200))
-		x_additional=tflearn.layers.core.fully_connected(xx,987,scope='FullyConnected_Add1',activation='relu',weight_decay=1e-3,regularizer='L2')
-
+		
 		#x_additional=tf.reshape(x,(BATCH_SIZE*NUM_VIEW,6144))  # (B*V,6144)
 		#x_additional=tflearn.layers.core.fully_connected(x_additional,2048,scope='FullyConnected',activation='relu',weight_decay=1e-3,regularizer='L2')  # (B*V,2048)
 		#x_additional=tflearn.layers.core.fully_connected(x_additional,1024,scope='FullyConnected_1',activation='relu',weight_decay=1e-3,regularizer='L2')  # (B*V,1024)
+
+		# Branch 2 outputs (B,V,256)
+		x_additional=tflearn.layers.core.fully_connected(xx,987,scope='FullyConnected_Add1',activation='relu',weight_decay=1e-3,regularizer='L2')
+
 		x_additional=tflearn.layers.core.fully_connected(x_additional,3*256*3,scope='FullyConnected_Add2',activation='linear',weight_decay=1e-3,regularizer='L2')  # (B*V,768)
 		x_additional=tf.reshape(x_additional,(BATCH_SIZE,NUM_VIEW,256,3))  # (B,V,256,3)
 
+		# Branch 1 outputs (B,V,768)
 		x=tf.reshape(xx,(BATCH_SIZE,(NUM_VIEW+1)*N_h))
-		x=tflearn.layers.core.fully_connected(x,3*487,scope='FullyConnected_LSTM1',activation='relu',weight_decay=1e-3,regularizer='L2')
-		x=tflearn.layers.core.fully_connected(x,3*6144,scope='FullyConnected_LSTM2',activation='relu',weight_decay=1e-3,regularizer='L2')
-		x=tf.reshape(x,(BATCH_SIZE,NUM_VIEW,6144))
+		x=tflearn.layers.core.fully_connected(x,987,scope='FullyConnected_LSTM1',activation='relu',weight_decay=1e-3,regularizer='L2')
+		x=tflearn.layers.core.fully_connected(x,6144,scope='FullyConnected_LSTM2',activation='relu',weight_decay=1e-3,regularizer='L2')
+		x=tf.reshape(x,(BATCH_SIZE,6144))
 
-		x=tf.reshape(x,(BATCH_SIZE*NUM_VIEW,3,4,512))  # (B*V,3,4,512)
-		x=tflearn.layers.conv.conv_2d_transpose(x,256,[5,5],[6,8],scope='Conv2DTranspose',strides=2,activation='linear',weight_decay=1e-5,regularizer='L2')  # (B*V,6,8,256)
-
+		x=tf.reshape(x,(BATCH_SIZE,3,4,512))  # (B,3,4,512)
+		x=tflearn.layers.conv.conv_2d_transpose(x,256,[5,5],[6,8],scope='Conv2DTranspose',strides=2,activation='linear',weight_decay=1e-5,regularizer='L2')  # (B,6,8,256)
+		'''
 		x5=tf.reshape(x5,(BATCH_SIZE,NUM_VIEW,24576))  # (B,V,24576)
 		x5=tf.transpose(x5, perm=[1,0,2])  # (V,B,24576)
 		x5 = view_pool_nothing(x5, 'x5_lstm', 24576)  # (B*V,24576)    24576=6*8*512
 		# print(x5.shape)
 		x5=tf.transpose(x5, perm=[1,0,2])  # (B,V,24576)
-		x5=tf.reshape(x5, (BATCH_SIZE*NUM_VIEW,6,8,512))  # (B*V,6,8,512)
-
+		x5=tf.reshape(x5, (BATCH_SIZE*NUM_VIEW,6,8,512))  # (B*V,6,8,512)		
 		x5=tflearn.layers.conv.conv_2d(x5,256,(3,3),scope='Conv2D_19',strides=1,activation='linear',weight_decay=1e-5,regularizer='L2')  # (B*V,6,8,256)
+		'''
+		x5=tf.reshape(x5,(BATCH_SIZE,6,8,512*NUM_VIEW))
+		x5=tflearn.layers.conv.conv_2d(x5,256,(3,3),scope='Conv2D_19',strides=1,activation='linear',weight_decay=1e-5,regularizer='L2') # (B,6,8,256)
+
 		x=tf.nn.relu(tf.add(x,x5))
 		x=tflearn.layers.conv.conv_2d(x,256,(3,3),scope='Conv2D_20',strides=1,activation='relu',weight_decay=1e-5,regularizer='L2')
-		x=tflearn.layers.conv.conv_2d_transpose(x,128,[5,5],[12,16],scope='Conv2DTranspose_1',strides=2,activation='linear',weight_decay=1e-5,regularizer='L2')  # (B*V,12,16,128)
+		x=tflearn.layers.conv.conv_2d_transpose(x,128,[5,5],[12,16],scope='Conv2DTranspose_1',strides=2,activation='linear',weight_decay=1e-5,regularizer='L2')  # (B,12,16,128)
 
-		x4=tf.reshape(x4,(BATCH_SIZE,NUM_VIEW,49152))  # (B,V,49152)
-		x4=tf.transpose(x4, perm=[1,0,2])  # (B,V,49152)
-		x4 = view_pool_nothing(x4, 'x4_lstm', 49152)  # (B*V,49152)    49152=12*16*256
+		#x4=tf.reshape(x4,(BATCH_SIZE,NUM_VIEW,49152))  # (B,V,49152)
+		#x4=tf.transpose(x4, perm=[1,0,2])  # (B,V,49152)
+		#x4 = view_pool_nothing(x4, 'x4_lstm', 49152)  # (B*V,49152)    49152=12*16*256
 		# print(x4.shape)
-		x4=tf.transpose(x4, perm=[1,0,2])  # (B,V,49152)
-		x4=tf.reshape(x4, (BATCH_SIZE*NUM_VIEW,12,16,256))  # (B,V,12,16,256)
+		#x4=tf.transpose(x4, perm=[1,0,2])  # (B,V,49152)
+		#x4=tf.reshape(x4, (BATCH_SIZE*NUM_VIEW,12,16,256))  # (B,V,12,16,256)
 
-		x4=tflearn.layers.conv.conv_2d(x4,128,(3,3),scope='Conv2D_21',strides=1,activation='linear',weight_decay=1e-5,regularizer='L2')  # (B*V,12,16,128)
+		x4=tf.reshape(x4,(BATCH_SIZE,12,16,256*NUM_VIEW)) # (B,12,16,768)
+		x4=tflearn.layers.conv.conv_2d(x4,128,(3,3),scope='Conv2D_21',strides=1,activation='linear',weight_decay=1e-5,regularizer='L2')  # (B,12,16,128)
 		x=tf.nn.relu(tf.add(x,x4))
 		x=tflearn.layers.conv.conv_2d(x,128,(3,3),scope='Conv2D_22',strides=1,activation='relu',weight_decay=1e-5,regularizer='L2')
-		x=tflearn.layers.conv.conv_2d_transpose(x,64,[5,5],[24,32],scope='Conv2DTranspose_2',strides=2,activation='relu',weight_decay=1e-5,regularizer='L2')
+		x=tflearn.layers.conv.conv_2d_transpose(x,64,[5,5],[24,32],scope='Conv2DTranspose_2',strides=2,activation='relu',weight_decay=1e-5,regularizer='L2') #(B,24,32,64)
 
-		x3=tf.reshape(x3,(BATCH_SIZE,NUM_VIEW,98304))  # (B,V,98304)
-		x3=tf.transpose(x3, perm=[1,0,2])  # (V,B,98304)
-		x3 = view_pool_nothing(x3, 'x3_lstm', 98304)  # (B*V,98304)    98304=24*32*128
+		#x3=tf.reshape(x3,(BATCH_SIZE,NUM_VIEW,98304))  # (B,V,98304)
+		#x3=tf.transpose(x3, perm=[1,0,2])  # (V,B,98304)
+		#x3 = view_pool_nothing(x3, 'x3_lstm', 98304)  # (B*V,98304)    98304=24*32*128
 		# print(x3.shape)
-		x3=tf.transpose(x3, perm=[1,0,2])  # (B,V,98304)
-		x3=tf.reshape(x3, (BATCH_SIZE*NUM_VIEW,24,32,128))  # (B,V,24,32,128)
-
-		x3=tflearn.layers.conv.conv_2d(x3,64,(3,3),scope='Conv2D_23',strides=1,activation='linear',weight_decay=1e-5,regularizer='L2')  # (B*V,24,32,64)
+		#x3=tf.transpose(x3, perm=[1,0,2])  # (B,V,98304)
+		#x3=tf.reshape(x3, (BATCH_SIZE*NUM_VIEW,24,32,128))  # (B,V,24,32,128)
+		#x3=tflearn.layers.conv.conv_2d(x3,64,(3,3),scope='Conv2D_23',strides=1,activation='linear',weight_decay=1e-5,regularizer='L2')  # (B*V,24,32,64)
+		
+		x3=tf.reshape(x3,(BATCH_SIZE,24,32,128*NUM_VIEW))
+		x3=tflearn.layers.conv.conv_2d(x3,64,(3,3),scope='Conv2D_23',strides=1,activation='linear',weight_decay=1e-5,regularizer='L2') # (B,24,32,64)
+		
 		x=tf.nn.relu(tf.add(x,x3))
-		x=tflearn.layers.conv.conv_2d(x,64,(3,3),scope='Conv2D_24',strides=1,activation='relu',weight_decay=1e-5,regularizer='L2')
-		x=tflearn.layers.conv.conv_2d(x,64,(3,3),scope='Conv2D_25',strides=1,activation='relu',weight_decay=1e-5,regularizer='L2')
-		x=tflearn.layers.conv.conv_2d(x,3,(3,3),scope='Conv2D_26',strides=1,activation='linear',weight_decay=1e-5,regularizer='L2')  # (B*V,24,32,3)
-		x=tf.reshape(x,(BATCH_SIZE,NUM_VIEW,32*24,3))  # (B,V,768,3)
-		x=tf.concat([x_additional,x],axis=2)  # (B,V,1024,3)
+		x=tflearn.layers.conv.conv_2d(x,64,(3,3),scope='Conv2D_24',strides=1,activation='relu',weight_decay=1e-5,regularizer='L2') # (B,24,32,64)
+		x=tflearn.layers.conv.conv_2d(x,64,(3,3),scope='Conv2D_25',strides=1,activation='relu',weight_decay=1e-5,regularizer='L2') # (B,24,32,64)
+		x=tflearn.layers.conv.conv_2d(x,3,(3,3),scope='Conv2D_26',strides=1,activation='linear',weight_decay=1e-5,regularizer='L2')  # (B,24,32,3)
+		x=tf.reshape(x,(BATCH_SIZE,32*24,3))  # (B,768,3)
+		#x=tf.concat([x_additional,x],axis=2)  # (B,V,1024,3)
 		#x=tf.reshape(x,(BATCH_SIZE,NUM_VIEW,OUTPUTPOINTS,3))  # do we really need this line?
 
 		# figure out the input size for nndistance
-		pt_gt_bv=tf.reshape(pt_gt,(BATCH_SIZE*NUM_VIEW,POINTCLOUDSIZE,3))  # (B*V,4096,3)
-		x_bf=tf.reshape(x,(BATCH_SIZE*NUM_VIEW,OUTPUTPOINTS,3))  # (B*V,1024,3)
-		x = x[:,0,:,:]
+		#pt_gt_bf=tf.reshape(pt_gt,(BATCH_SIZE,POINTCLOUDSIZE,3))  # (B,4096,3)
+		#x_bf=tf.reshape(x,(BATCH_SIZE*NUM_VIEW,OUTPUTPOINTS,3))  # (B,1024,3)
 
-		dists_forward,dists_backward=tf_nndistance.nn_distance(pt_gt_bv,x_bf)  # (B*V,4096) and (B*V,1024) 
+		dists_forward,dists_backward=tf_nndistance.nn_distance(pt_gt,x)  # (B,2600,3) and (B,768,3) 
 		mindist=dists_forward
 		dist0=mindist[0,:]
 		dists_forward=tf.reduce_mean(dists_forward)
@@ -417,12 +419,12 @@ def testpredictions(resourceid,keyname,valnum,modeldir):
 	with tf.Session(config=config) as sess:
 		sess.run(tf.global_variables_initializer())
 		saver.restore(sess,"%s/%s.ckpt"%(modeldir,keyname))
-		fetchworkerTest.bno=0
-		fetchworkerTest.start()
+		fetchworker.bno=0
+		fetchworker.start()
 		cnt=0
 		for i in xrange(0,valnum):
 			t0=time.time()
-			data,ptcloud,validating=fetch_batchTest()
+			data,ptcloud,validating=fetch_batch()
 			pred=sess.run(x,feed_dict={img_inp:data})
 			for j in range(0, BATCH_SIZE):
 				outfile="%s/pts_"%dumpdir+str(i)+'_'+str(j)+'.txt'
@@ -470,7 +472,6 @@ if __name__=='__main__':
 	#assert os.path.exists(datadir),"data dir not exists"
 	os.system("mkdir -p %s"%dumpdir)
 	fetchworker=BatchFetcher(datadir)
-	fetchworkerTest=BatchFetcher3(datadir)
 	print "datadir=%s dumpdir=%s num=%d cmd=%s started"%(datadir,dumpdir,valnum,cmd)
 	
 	keyname=os.path.basename(__file__).rstrip('.py')

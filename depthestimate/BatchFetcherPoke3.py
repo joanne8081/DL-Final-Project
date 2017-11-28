@@ -56,19 +56,19 @@ class BatchFetcher(threading.Thread):
 		datalist = [x for x in datalist if x!='0']
 		datalist = sorted(datalist)
 		data=np.zeros((FETCH_BATCH_SIZE,NUM_VIEW,HEIGHT,WIDTH,4),dtype='float32')
-		ptcloud=np.zeros((FETCH_BATCH_SIZE,NUM_VIEW,POINTCLOUDSIZE,3),dtype='float32')		
+		ptcloud=np.zeros((FETCH_BATCH_SIZE,POINTCLOUDSIZE,3),dtype='float32')		
 		validating = np.random.randint(16,size=FETCH_BATCH_SIZE)==0
 		for i in range(FETCH_BATCH_SIZE):
 			pokenum = datalist[bno]
-			firstnum = np.random.randint(TOTAL_NUM_VIEW)
-			viewnum = [(firstnum+i*(TOTAL_NUM_VIEW/NUM_VIEW))%(TOTAL_NUM_VIEW) for i in range(NUM_VIEW)]
-			#viewnum = random.sample(range(TOTAL_NUM_VIEW), NUM_VIEW)
+			lastnum = i
+			viewnum = [(lastnum-k*(TOTAL_NUM_VIEW/NUM_VIEW))%TOTAL_NUM_VIEW for k in range(NUM_VIEW-1,-1,-1)]
 			for j in range(len(viewnum)):	
 				path2png = os.path.join(self.datadir, pokenum, pokenum+'_{}.png'.format(viewnum[j]))
 				path2txt = os.path.join(self.datadir, pokenum, pokenum+'.txt')
 				single_data, single_ptcloud=self.fetch_single(path2png, path2txt)
 				data[i,j,:,:,:] = single_data
-				ptcloud[i,j,:,:] = single_ptcloud
+				if j==NUM_VIEW-1:
+					ptcloud[i,:,:] = single_ptcloud
  
 		return (data,ptcloud,validating)
 
