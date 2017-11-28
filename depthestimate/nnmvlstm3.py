@@ -84,21 +84,11 @@ def build_mv_graph(resourceid,lr):
 		xx=tf.concat([xx, c_v],axis=1) #(B,200)
 		# End of LSTM
 
-		#print(xx.shape)
-
-		#x = view_pool_lstm(x, 'enc_lstm', 6144)  # (V,B,6144)   6144=3*4*512
-		#x=tf.transpose(x, perm=[1,0,2])  # (B,V,6144)
-		#x_additional=tf.reshape(x,(BATCH_SIZE,200))
-		
-		#x_additional=tf.reshape(x,(BATCH_SIZE*NUM_VIEW,6144))  # (B*V,6144)
-		#x_additional=tflearn.layers.core.fully_connected(x_additional,2048,scope='FullyConnected',activation='relu',weight_decay=1e-3,regularizer='L2')  # (B*V,2048)
-		#x_additional=tflearn.layers.core.fully_connected(x_additional,1024,scope='FullyConnected_1',activation='relu',weight_decay=1e-3,regularizer='L2')  # (B*V,1024)
-
 		# Branch 2 outputs (B,V,256)
 		x_additional=tflearn.layers.core.fully_connected(xx,987,scope='FullyConnected_Add1',activation='relu',weight_decay=1e-3,regularizer='L2')
 
-		x_additional=tflearn.layers.core.fully_connected(x_additional,3*256*3,scope='FullyConnected_Add2',activation='linear',weight_decay=1e-3,regularizer='L2')  # (B*V,768)
-		x_additional=tf.reshape(x_additional,(BATCH_SIZE,NUM_VIEW,256,3))  # (B,V,256,3)
+		x_additional=tflearn.layers.core.fully_connected(x_additional,256*3,scope='FullyConnected_Add2',activation='linear',weight_decay=1e-3,regularizer='L2')  # (B*V,768)
+		x_additional=tf.reshape(x_additional,(BATCH_SIZE,256,3))  # (B,V,256,3)
 
 		# Branch 1 outputs (B,V,768)
 		x=tf.reshape(xx,(BATCH_SIZE,(NUM_VIEW+1)*N_h))
@@ -153,14 +143,14 @@ def build_mv_graph(resourceid,lr):
 		x=tflearn.layers.conv.conv_2d(x,64,(3,3),scope='Conv2D_25',strides=1,activation='relu',weight_decay=1e-5,regularizer='L2') # (B,24,32,64)
 		x=tflearn.layers.conv.conv_2d(x,3,(3,3),scope='Conv2D_26',strides=1,activation='linear',weight_decay=1e-5,regularizer='L2')  # (B,24,32,3)
 		x=tf.reshape(x,(BATCH_SIZE,32*24,3))  # (B,768,3)
-		#x=tf.concat([x_additional,x],axis=2)  # (B,V,1024,3)
+		x=tf.concat([x_additional,x],axis=1)  # (B,1024,3)
 		#x=tf.reshape(x,(BATCH_SIZE,NUM_VIEW,OUTPUTPOINTS,3))  # do we really need this line?
 
 		# figure out the input size for nndistance
 		#pt_gt_bf=tf.reshape(pt_gt,(BATCH_SIZE,POINTCLOUDSIZE,3))  # (B,4096,3)
 		#x_bf=tf.reshape(x,(BATCH_SIZE*NUM_VIEW,OUTPUTPOINTS,3))  # (B,1024,3)
 
-		dists_forward,dists_backward=tf_nndistance.nn_distance(pt_gt,x)  # (B,2600,3) and (B,768,3) 
+		dists_forward,dists_backward=tf_nndistance.nn_distance(pt_gt,x)  # (B,2600,3) and (B,1024,3) 
 		mindist=dists_forward
 		dist0=mindist[0,:]
 		dists_forward=tf.reduce_mean(dists_forward)
