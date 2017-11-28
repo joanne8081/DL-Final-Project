@@ -108,7 +108,7 @@ def build_mv_graph(resourceid,lr):
 		x5=tflearn.layers.conv.conv_2d(x5,256,(3,3),scope='Conv2D_19',strides=1,activation='linear',weight_decay=1e-5,regularizer='L2')  # (B*V,6,8,256)
 		'''
 		x5=tf.reshape(x5,(BATCH_SIZE,6,8,512*NUM_VIEW))
-		x5=tflearn.layers.conv.conv_2d(x5,256,(3,3),scope='Conv2D_19',strides=1,activation='linear',weight_decay=1e-5,regularizer='L2') # (B,6,8,256)
+		x5=tflearn.layers.conv.conv_2d(x5,256,(3,3),scope='Conv2D_19_1',strides=1,activation='linear',weight_decay=1e-5,regularizer='L2') # (B,6,8,256)
 
 		x=tf.nn.relu(tf.add(x,x5))
 		x=tflearn.layers.conv.conv_2d(x,256,(3,3),scope='Conv2D_20',strides=1,activation='relu',weight_decay=1e-5,regularizer='L2')
@@ -122,7 +122,7 @@ def build_mv_graph(resourceid,lr):
 		#x4=tf.reshape(x4, (BATCH_SIZE*NUM_VIEW,12,16,256))  # (B,V,12,16,256)
 
 		x4=tf.reshape(x4,(BATCH_SIZE,12,16,256*NUM_VIEW)) # (B,12,16,768)
-		x4=tflearn.layers.conv.conv_2d(x4,128,(3,3),scope='Conv2D_21',strides=1,activation='linear',weight_decay=1e-5,regularizer='L2')  # (B,12,16,128)
+		x4=tflearn.layers.conv.conv_2d(x4,128,(3,3),scope='Conv2D_21_1',strides=1,activation='linear',weight_decay=1e-5,regularizer='L2')  # (B,12,16,128)
 		x=tf.nn.relu(tf.add(x,x4))
 		x=tflearn.layers.conv.conv_2d(x,128,(3,3),scope='Conv2D_22',strides=1,activation='relu',weight_decay=1e-5,regularizer='L2')
 		x=tflearn.layers.conv.conv_2d_transpose(x,64,[5,5],[24,32],scope='Conv2DTranspose_2',strides=2,activation='relu',weight_decay=1e-5,regularizer='L2') #(B,24,32,64)
@@ -136,7 +136,7 @@ def build_mv_graph(resourceid,lr):
 		#x3=tflearn.layers.conv.conv_2d(x3,64,(3,3),scope='Conv2D_23',strides=1,activation='linear',weight_decay=1e-5,regularizer='L2')  # (B*V,24,32,64)
 		
 		x3=tf.reshape(x3,(BATCH_SIZE,24,32,128*NUM_VIEW))
-		x3=tflearn.layers.conv.conv_2d(x3,64,(3,3),scope='Conv2D_23',strides=1,activation='linear',weight_decay=1e-5,regularizer='L2') # (B,24,32,64)
+		x3=tflearn.layers.conv.conv_2d(x3,64,(3,3),scope='Conv2D_23_1',strides=1,activation='linear',weight_decay=1e-5,regularizer='L2') # (B,24,32,64)
 		
 		x=tf.nn.relu(tf.add(x,x3))
 		x=tflearn.layers.conv.conv_2d(x,64,(3,3),scope='Conv2D_24',strides=1,activation='relu',weight_decay=1e-5,regularizer='L2') # (B,24,32,64)
@@ -188,10 +188,10 @@ def view_pool_lstm2(view_features, n_batch, name, n_hidden=None, n_out=None):
 				tf.get_variable_scope().reuse_variables()
 			(cell_output, state) = cell(view_features[v,:,:], state)
 			outputs.append(cell_output)
-	print(cell.scope_name)
-	print(cell.state_size)
-	print(cell.output_size)
-	print(cell.variables)
+	#print(cell.scope_name)
+	#print(cell.state_size)
+	#print(cell.output_size)
+	#print(cell.variables)
 	return outputs, state[0]
 	'''
 def inference(x, n_batch, maxlen=None, n_hidden=None, n_out=None):
