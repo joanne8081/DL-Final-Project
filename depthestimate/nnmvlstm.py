@@ -140,7 +140,7 @@ def build_mv_graph(resourceid,lr):
 		# figure out the input size for nndistance
 		pt_gt_bv=tf.reshape(pt_gt,(BATCH_SIZE*NUM_VIEW,POINTCLOUDSIZE,3))  # (B*V,4096,3)
 		x_bf=tf.reshape(x,(BATCH_SIZE*NUM_VIEW,OUTPUTPOINTS,3))  # (B*V,1024,3)
-		x = x[:,0,:,:]
+		x = x[:,2,:,:]
 
 		dists_forward,dists_backward=tf_nndistance.nn_distance(pt_gt_bv,x_bf)  # (B*V,4096) and (B*V,1024) 
 		mindist=dists_forward
@@ -155,18 +155,21 @@ def build_mv_graph(resourceid,lr):
 	return img_inp,x,pt_gt,loss,optimizer,batchno,batchnoinc,mindist,loss_nodecay,dists_forward,dists_backward,dist0
 
 def view_pool_lstm(view_features, name, outdim):
-  s = view_features.shape
-  view_features = tf.reshape(view_features,(s[0],s[1],outdim))
-  x = tf.unstack(view_features, axis=0)
-  rnn_cell = tf.contrib.rnn.LSTMCell(50)
-  rnn_cell.add_variable(name=name, shape = 50, dtype=tf.float32)
-  vp, states = tf.contrib.rnn.static_rnn(rnn_cell, x, dtype=tf.float32)
-  vp = tf.stack(vp, axis = 0)
+	s = view_features.shape
+	view_features = tf.reshape(view_features,(s[0],s[1],outdim))
+	x = tf.unstack(view_features, axis=0)
+	rnn_cell = tf.contrib.rnn.LSTMCell(50)
+	rnn_cell.add_variable(name=name, shape = 50, dtype=tf.float32)
+	vp, states = tf.contrib.rnn.static_rnn(rnn_cell, x, dtype=tf.float32)
+	vp = tf.stack(vp, axis = 0)
   #vp = tf.reshape(vp, (s[0]*s[1],50))
   #vp = tflearn.layers.core.fully_connected(vp, 487, scope = 'Fully_Connected_LSTM1', activation = 'relu', weight_decay = 1e-3, regularizer = 'L2')
   #vp = tflearn.layers.core.fully_connected(vp, outdim, scope = 'Fully_Connected_LSTM2', activation = 'relu', weight_decay = 1e-3, regularizer = 'L2')
   #vp = tf.reshape(vp, (s[0],s[1],outdim))
   return vp
+
+def view_pool_lstm2(view_features, name, outdim):
+	
 
 def view_pool_nothing(view_features, name, outdim):
   return view_features
